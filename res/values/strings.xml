@@ -13,6 +13,7 @@
     <string name="tip_twenty">TIP $20</string>
     <string name="tip_fourty">TIP $40</string>
     <string name="tip_sixty">TIP $60</string>
+    <string name="you_must">You must first add additional credits</string>
 
 
 </resources>

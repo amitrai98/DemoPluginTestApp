@@ -4,5 +4,6 @@
     <color name="white">#ffffff</color>
     <color name="credit_added">#4e9f2e</color>
     <color name="semi_transparent">#88676767</color>
+    <color name="black">#000000</color>
 
 </resources>
