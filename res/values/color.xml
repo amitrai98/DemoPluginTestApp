@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="connecting_dialog">#313131</color>
+    <color name="white">#ffffff</color>
+    <color name="credit_added">#4e9f2e</color>
+    <color name="semi_transparent">#88676767</color>
+
+</resources>
