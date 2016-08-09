@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/mainlayout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+                android:id="@+id/mainlayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent">
 
 
     <TextView
@@ -105,6 +105,15 @@
             android:layout_marginTop="20dp" />
 
         <include
+            android:visibility="invisible"
+            android:id="@+id/layout_tip_send_receive"
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            layout="@layout/tip_sent_receive"
+        />
+
+        <include
             layout="@layout/view_none_video"
             android:layout_centerInParent="true"
             android:layout_width="match_parent"
@@ -119,13 +128,44 @@
 
             <ImageView
                 android:id="@+id/iv_swipe_camera"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_marginRight="20dp"
                 android:onClick="swipeCamera"
-
                 android:src="@drawable/refresh"
                 android:visibility="visible" />
         </RelativeLayout>
+
+
+
+        <RelativeLayout
+            android:id="@+id/layout_tip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_marginTop="20dp"
+            android:visibility="invisible">
+
+            <ImageView
+                android:id="@+id/img_tip"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="20dp"
+                android:onClick="swipeCamera"
+
+                android:src="@drawable/tip"
+                android:visibility="visible" />
+        </RelativeLayout>
+
+        <include
+            android:visibility="invisible"
+            android:id="@+id/layout_low_credit"
+            android:layout_below="@+id/layout_tip"
+            android:layout_marginTop="10dp"
+            layout="@layout/low_credit_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+
     </RelativeLayout>
 </RelativeLayout>

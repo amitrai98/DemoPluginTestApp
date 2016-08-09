@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.CardView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,7 +54,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private ViewGroup mViewGroup;
     private LinearLayout mParentProgressDialog;
     private Chrono mTimerTxt;
-    private RelativeLayout mPricePopUp;
+    private CardView mPricePopUp;
     private String mCallPerMinute, mUserBalance, mProfileImageUrl;
     private RelativeLayout mCallingViewParent;
     private boolean isCallingViewVisible = true;
@@ -79,6 +80,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private boolean mMissedCall = false;
 
     private CallBean callBean = null;
+
+    // new view changes
+    private RelativeLayout layout_tip_send_receive = null;
+    private RelativeLayout layout_low_credit = null;
+    private RelativeLayout layout_tip = null;
+
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -106,17 +113,25 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 endCall(object);
             }
 
-            if(action.equalsIgnoreCase(ACTION_APIRESPONSE))
+            if(action.equalsIgnoreCase(ACTION_APIRESPONSE)){
                 initVideoCall(action, args, callbackContext);
 
-            if(action.equalsIgnoreCase(ACTION_BALANCE_WARNING))
+            }
+
+            if(action.equalsIgnoreCase(ACTION_BALANCE_WARNING)){
+                showLowBalanceWarning();
+
+            }
+
+            if(action.equalsIgnoreCase(ACTION_TIPRECEIVED)){
                 initVideoCall(action, args, callbackContext);
 
-            if(action.equalsIgnoreCase(ACTION_TIPRECEIVED))
+            }
+
+            if(action.equalsIgnoreCase(ACTION_GETUSERBALANCE)){
                 initVideoCall(action, args, callbackContext);
 
-            if(action.equalsIgnoreCase(ACTION_GETUSERBALANCE))
-                initVideoCall(action, args, callbackContext);
+            }
 
         }
         return false;
@@ -133,7 +148,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             CALL_DISCONNECT = false;
             String apiKey = callBean.getApiKey();//.getString("apiKey");
             String sessonId = callBean.getSessionId();//object.getString("sessonId");
-            String sessonToken = callBean.getSessionId();//object.getString("sessonToken");
+            String sessonToken = callBean.getToken();//object.getString("sessonToken");
             mCallPerMinute = callBean.getCallPerMinute();//object.getString("callPerMinute");
             mUserBalance = "12121";//object.getString("userBalance");
             mProfileImageUrl = callBean.getProfileImage();//object.getString("profileImageUrl");
@@ -157,9 +172,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
 
 
-            if(mCallPerMinute != null && mCallPerMinute.equals("0")){
+            if(callBean != null){
                 mCaller = false;
-                JSONObject json = getJson(Constants.RECEIVER_INITIALIZED, SUCCESS);
+                JSONObject json = getJson(Constants.INIT_COMPLETE, SUCCESS);
                 mCallBackContext.successMessage(json);
                 mSession = new MySession(cordova.getActivity(), this, apiKey, sessonId, false);
             }
@@ -188,6 +203,14 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
         LayoutInflater inflator = LayoutInflater.from(cordova.getActivity());
         mCallView = inflator.inflate(R.layout.room, null);
+
+        layout_tip_send_receive = (RelativeLayout) mCallView.findViewById(R.id.layout_tip_send_receive);
+        layout_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_tip);
+        layout_low_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_low_credit);
+
+
+
+
         setMargins(mCallView, 0, 500,0,0);
 //        View nullView = inflator.inflate(R.layout.view_none_video,null);
 
@@ -213,7 +236,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //        creator.into(mImageNonView);
 
 
-        mPricePopUp = (RelativeLayout) mCallView.findViewById(R.id.cv_connecting_price_dialog);
+        mPricePopUp = (CardView) mCallView.findViewById(R.id.cv_connecting_price_dialog);
 
         if (mCallPerMinute.equalsIgnoreCase("0")) {
             mPricePopUp.setVisibility(View.GONE);
@@ -281,7 +304,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         JSONObject json = getJson(Constants.CONNECTION_CREATED, SUCCESS);
         mCallBackContext.successMessage(json);
 
-        if(mCallPerMinute != null && mCallPerMinute.equals("0")){
+        if(mCallPerMinute != null ){
+
+            layout_tip_send_receive.setVisibility(View.VISIBLE);
+            layout_tip.setVisibility(View.VISIBLE);
+//            layout_low_credit.setVisibility(View.VISIBLE);
+
             JSONObject json_callstarted = getJson(Constants.CALL_STARTED, SUCCESS);
             mCallBackContext.successMessage(json_callstarted);
 
@@ -299,6 +327,8 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
             visibleCallingViews();
             callThread();
+
+            //aaabb/123456 susie/123456
         }
     }
 
@@ -307,6 +337,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         SlideToAbove();
         SlideToLeft();
         mSwipeBtn.setVisibility(View.VISIBLE);
+
         isCallingViewVisible = true;
         callThread();
     }
@@ -464,10 +495,14 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
             else {
                 JSONObject json = getJson(Constants.DISCONNECT_SUCCESS, SUCCESS);
+                JSONObject endcalljson = getJson(Constants.CALL_END_BEFORE_CONNECT, SUCCESS);
+
                 mCallBackContext.successMessage(json);
+                mCallBackContext.successMessage(endcalljson);
             }
 
             mSession.disconnect();
+
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -825,14 +860,15 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 int permissionCheckModifyAudio = ContextCompat.checkSelfPermission(cordova.getActivity(),
                         Manifest.permission.MODIFY_AUDIO_SETTINGS);
 
+                initCall(callBean);
 
                 if (permissionCheck == PackageManager.PERMISSION_GRANTED && permissionCheckAudio == PackageManager.PERMISSION_GRANTED && permissionCheckModifyAudio == PackageManager.PERMISSION_GRANTED) {
-                    cordova.getThreadPool().execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            initCall(callBean);
-                        }
-                    });
+//                    cordova.getThreadPool().execute(new Runnable() {
+//                        @Override
+//                        public void run() {
+//
+//                        }
+//                    });
 
                 } else {
 
@@ -880,5 +916,17 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             callbackContext.error(e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * shows low balance warning
+     */
+    private void showLowBalanceWarning(){
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                layout_low_credit.setVisibility(View.VISIBLE);
+            }
+        });
     }
 }

@@ -250,7 +250,6 @@ dependencies {
     // SUB-PROJECT DEPENDENCIES START
     debugCompile project(path: "CordovaLib", configuration: "debug")
     releaseCompile project(path: "CordovaLib", configuration: "release")
-    compile 'com.google.code.gson:gson:2.6.2'
     // SUB-PROJECT DEPENDENCIES END
 }
 
