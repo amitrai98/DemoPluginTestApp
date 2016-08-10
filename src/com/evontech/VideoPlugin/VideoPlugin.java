@@ -339,7 +339,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         if(mCallPerMinute != null ){
 
             layout_tip_send_receive.setVisibility(View.VISIBLE);
-            layout_tip.setVisibility(View.VISIBLE);
+//            layout_tip.setVisibility(View.VISIBLE);
 //            layout_low_credit.setVisibility(View.VISIBLE);
 
             JSONObject json_callstarted = getJson(Constants.CALL_STARTED, SUCCESS);
@@ -368,8 +368,8 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //        mCallingViewParent.setVisibility(View.VISIBLE);
         SlideToAbove();
         SlideToLeft();
+        addCreditSlideIn();
         mSwipeBtn.setVisibility(View.VISIBLE);
-
         isCallingViewVisible = true;
         callThread();
     }
@@ -377,6 +377,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private void invisibleCallingViews() {
         SlideToDown();
         SlideToRight();
+        addCreditSlideOut();
 
         isCallingViewVisible = false;
     }
@@ -782,7 +783,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             @Override
             public void onAnimationEnd(Animation animation) {
 
-                mSwipeBtn.setVisibility(View.GONE);
+                mSwipeBtn.setVisibility(View.INVISIBLE);
 //                mCallingViewParent.clearAnimation();
 //
 //                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
@@ -797,8 +798,59 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     }
 
-    private void slideToLeft(){
+    /**
+     * slides out the credit button
+     */
+    private void addCreditSlideIn(){
+        Animation animation = new TranslateAnimation(-500, 0,0, 0);
+        animation.setDuration(600);
+        animation.setFillAfter(true);
+        animation.setFillEnabled(true);
+        layout_tip.startAnimation(animation);
 
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                layout_tip.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+    }
+
+    /**
+     * slides out the credit button
+     */
+    private void addCreditSlideOut(){
+        Animation animation = new TranslateAnimation(0, -500,0, 0);
+        animation.setDuration(600);
+        animation.setFillAfter(true);
+        animation.setFillEnabled(true);
+        layout_tip.startAnimation(animation);
+        animation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                layout_tip.setVisibility(View.INVISIBLE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
     }
 
     @Override

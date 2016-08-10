@@ -145,7 +145,10 @@
                 android:onClick="swipeCamera"
                 android:src="@drawable/refresh"
                 android:visibility="visible" />
+
+
         </RelativeLayout>
+
 
 
 
