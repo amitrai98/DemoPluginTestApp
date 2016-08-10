@@ -1,18 +1,25 @@
 package com.evontech.VideoPlugin;
 
 import android.Manifest;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.CardView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -85,6 +92,33 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private RelativeLayout layout_tip_send_receive = null;
     private RelativeLayout layout_low_credit = null;
     private RelativeLayout layout_tip = null;
+//    private ImageView img_add_credit = null;
+    private RelativeLayout layout_plus_credit = null;
+    private ProgressDialog dialogWait = null;
+
+//    private RelativeLayout layout_send_tip = null;
+
+    // tip dialog
+    private RelativeLayout layout_close = null;
+    private LinearLayout layout_addmore = null;
+    private Button btn_sendtip = null;
+    private Button btn_ten_dollar = null;
+    private Button btn_twenty_dollar = null;
+    private Button btn_fourty_dollar = null;
+    private Button btn_sixty_dollar = null;
+    private EditText edt_tipamount = null;
+    private LinearLayout layout_progress_tip = null;
+    private RelativeLayout layout_others = null;
+
+    //add credit
+    private RelativeLayout layout_close_add_credit = null;
+    private Button btn_buy_ten = null;
+    private Button btn_buy_twetnty = null;
+    private Button btn_buy_fourty = null;
+    private Button btn_buy_sixty = null;
+    private LinearLayout layout_progress = null;
+    private LinearLayout layout_credit_btns = null;
+
 
 
     @Override
@@ -99,8 +133,6 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-
-
 
         if (action != null && !action.isEmpty()){
 
@@ -207,14 +239,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         layout_tip_send_receive = (RelativeLayout) mCallView.findViewById(R.id.layout_tip_send_receive);
         layout_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_tip);
         layout_low_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_low_credit);
-
-
+        layout_plus_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_plus_credit);
+//        layout_send_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_send_tip);
 
 
         setMargins(mCallView, 0, 500,0,0);
-//        View nullView = inflator.inflate(R.layout.view_none_video,null);
-
-//        mSession.setNullView(nullView);
 
         ViewGroup preview = (ViewGroup) mCallView.findViewById(R.id.preview);  // User View
         mSession.setPreviewView(preview);
@@ -256,6 +285,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         mMicBtn.setOnClickListener(this);
         mDisconnectBtn.setOnClickListener(this);
         mSwipeBtn.setOnClickListener(this);
+        layout_plus_credit.setOnClickListener(this);
+
+
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -535,6 +567,35 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     visibleCallingViews();
                 }
                 break;
+            case R.id.layout_plus_credit:
+                showSelectTipAmount();
+                break;
+            case R.id.layout_close:
+                closeCreditDialog();
+                break;
+            case R.id.layout_addmore:
+                addMoreCredit();
+                break;
+
+            case R.id.btn_sendtip:
+                sendTip(null, true);
+                break;
+
+            case R.id.btn_ten_dollar:
+                sendTip(Constants.TEN_DOLLARS, true);
+                break;
+
+            case R.id.btn_twenty_dollar:
+                sendTip(Constants.TWENTY_DOLLARS, true);
+                break;
+
+            case R.id.btn_fourty_dollar:
+                sendTip(Constants.FOURTY_DOLLARS, true);
+                break;
+
+            case R.id.btn_sixty_dollar:
+                sendTip(Constants.SIXTY_DOLLARS, true);
+                break;
         }
     }
 
@@ -656,6 +717,47 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     }
 
+    /**
+     * slides upward
+     */
+    private void slideToUp(){
+        Animation slide = null;
+        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
+                Animation.RELATIVE_TO_SELF, 5.2f, Animation.RELATIVE_TO_SELF,
+                0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
+
+        slide.setDuration(600);
+        slide.setFillAfter(true);
+        slide.setFillEnabled(true);
+        mSwipeBtn.startAnimation(slide);
+
+        slide.setAnimationListener(new Animation.AnimationListener() {
+
+            @Override
+            public void onAnimationStart(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+
+                mSwipeBtn.setVisibility(View.GONE);
+//                mCallingViewParent.clearAnimation();
+//
+//                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+//                        mCallingViewParent.getWidth(), mCallingViewParent.getHeight());
+//                lp.setMargins(0, mCallingViewParent.getWidth(), 0, 0);
+//                lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+//                mCallingViewParent.setLayoutParams(lp);
+
+            }
+
+        });
+    }
+
     public void SlideToRight() {
         Animation slide = null;
         slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
@@ -692,6 +794,10 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             }
 
         });
+
+    }
+
+    private void slideToLeft(){
 
     }
 
@@ -838,6 +944,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             prev_command =false;
             mMissedCall = false;
 
+            dialogWait = new ProgressDialog(cordova.getActivity());
+            dialogWait.setMessage(cordova.getActivity().getResources().getString(R.string.wait_message));
+
             Log.e(TAG, ""+args);
 
             Gson gson = new Gson();
@@ -925,8 +1034,274 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                layout_low_credit.setVisibility(View.VISIBLE);
+                try{
+                    layout_low_credit.setVisibility(View.VISIBLE);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+
             }
         });
     }
+
+    /**
+     * shows credit dialog to send
+     * money from one dialog to another
+     */
+    private void showSelectTipAmount(){
+        try{
+            layout_low_credit.setVisibility(View.INVISIBLE);
+            layout_tip_send_receive.setVisibility(View.INVISIBLE);
+//            layout_send_tip.setVisibility(View.VISIBLE);
+
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // custom dialog
+                    // custom dialog
+                    final Dialog dialog = new Dialog(cordova.getActivity());
+                    dialog.setContentView(R.layout.send_tip);
+                    dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                    lp.copyFrom(dialog.getWindow().getAttributes());
+                    DisplayMetrics displaymetrics = new DisplayMetrics();
+                    cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                    int height = displaymetrics.heightPixels;
+                    int width = displaymetrics.widthPixels;
+
+
+
+                    layout_close =  (RelativeLayout) dialog.findViewById(R.id.layout_close);
+
+                    layout_addmore =  (LinearLayout) dialog.findViewById(R.id.layout_addmore);
+                    btn_sendtip =  (Button) dialog.findViewById(R.id.btn_sendtip);
+                    btn_ten_dollar =  (Button) dialog.findViewById(R.id.btn_ten_dollar);
+                    btn_twenty_dollar =  (Button) dialog.findViewById(R.id.btn_twenty_dollar);
+                    btn_fourty_dollar =  (Button) dialog.findViewById(R.id.btn_fourty_dollar);
+                    btn_sixty_dollar =  (Button) dialog.findViewById(R.id.btn_sixty_dollar);
+                    edt_tipamount =  (EditText) dialog.findViewById(R.id.edt_tipamount);
+                    layout_progress_tip =  (LinearLayout) dialog.findViewById(R.id.layout_progress_tip);
+                    layout_others =  (RelativeLayout) dialog.findViewById(R.id.layout_others);
+
+                    layout_close.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                            closeCreditDialog();
+                        }
+                    });
+                    layout_addmore.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                            closeCreditDialog();
+                            showAddAmountDialog();
+                        }
+                    });
+                    btn_sendtip.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            layout_progress_tip.setVisibility(View.VISIBLE);
+                            layout_others.setVisibility(View.GONE);
+                            closeCreditDialog();
+                        }
+                    });
+                    btn_ten_dollar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            layout_progress_tip.setVisibility(View.VISIBLE);
+                            layout_others.setVisibility(View.GONE);
+                            closeCreditDialog();
+                        }
+                    });
+                    btn_twenty_dollar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            layout_progress_tip.setVisibility(View.VISIBLE);
+                            layout_others.setVisibility(View.GONE);
+                            closeCreditDialog();
+                        }
+                    });
+                    btn_fourty_dollar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                            closeCreditDialog();
+                        }
+                    });
+                    btn_sixty_dollar.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            layout_progress_tip.setVisibility(View.VISIBLE);
+                            layout_others.setVisibility(View.GONE);
+                            closeCreditDialog();
+                        }
+                    });
+
+
+                    lp.width = (int)(width * 0.8);
+                    lp.height = (int)(height * 0.8);
+                    dialog.show();
+                    dialog.getWindow().setAttributes(lp);
+                    dialog.show();
+                }
+            });
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * closes the credit dialog
+     */
+    private void closeCreditDialog(){
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    layout_low_credit.setVisibility(View.VISIBLE);
+                    layout_tip_send_receive.setVisibility(View.VISIBLE);
+//                    layout_send_tip.setVisibility(View.INVISIBLE);
+
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    /**
+     * add more credit
+     */
+    private void addMoreCredit(){
+
+    }
+
+
+    /**
+     * sennds amount to different users
+     * @param amount to be sent to other users
+     * @param isCustom if amount is custom or fixed
+     */
+    private void sendTip(String amount, boolean isCustom){
+        try {
+            if(isCustom){
+                if(!edt_tipamount.getText().toString().isEmpty()){
+                    Log.e(TAG, ""+edt_tipamount.getText().toString());
+                }
+            }else {
+
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+
+    }
+
+    /**
+     * shows amount to be added
+     */
+    private void showAddAmountDialog(){
+        {
+            try{
+                layout_low_credit.setVisibility(View.INVISIBLE);
+                layout_tip_send_receive.setVisibility(View.INVISIBLE);
+//            layout_send_tip.setVisibility(View.VISIBLE);
+
+                cordova.getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        final Dialog dialog = new Dialog(cordova.getActivity());
+                        dialog.setContentView(R.layout.buy_credit);
+                        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                        lp.copyFrom(dialog.getWindow().getAttributes());
+                        DisplayMetrics displaymetrics = new DisplayMetrics();
+                        cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                        int height = displaymetrics.heightPixels;
+                        int width = displaymetrics.widthPixels;
+
+
+                        layout_close_add_credit = (RelativeLayout) dialog.findViewById(R.id.layout_close_add_credit);
+
+
+                        btn_buy_ten =  (Button) dialog.findViewById(R.id.btn_buy_ten);
+                        btn_buy_twetnty =  (Button) dialog.findViewById(R.id.btn_buy_twetnty);
+                        btn_buy_fourty =  (Button) dialog.findViewById(R.id.btn_buy_fourty);
+                        btn_buy_sixty =  (Button) dialog.findViewById(R.id.btn_buy_sixty);
+                        layout_progress = (LinearLayout) dialog.findViewById(R.id.layout_progress);
+                        layout_credit_btns = (LinearLayout) dialog.findViewById(R.id.layout_credit_btns);
+
+                        layout_close_add_credit.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                dialog.dismiss();
+                                closeCreditDialog();
+
+                            }
+                        });
+                        btn_buy_ten.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                layout_credit_btns.setVisibility(View.INVISIBLE);
+                                layout_progress.setVisibility(View.VISIBLE);
+                                buyCredit(Constants.TEN_DOLLARS);
+                            }
+                        });
+                        btn_buy_twetnty.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                layout_credit_btns.setVisibility(View.INVISIBLE);
+                                layout_progress.setVisibility(View.VISIBLE);
+                                buyCredit(Constants.TWENTY_DOLLARS);
+                            }
+                        });
+                        btn_buy_fourty.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                layout_credit_btns.setVisibility(View.INVISIBLE);
+                                layout_progress.setVisibility(View.VISIBLE);
+                                buyCredit(Constants.FOURTY_DOLLARS);
+                            }
+                        });
+                        btn_buy_sixty.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                layout_credit_btns.setVisibility(View.INVISIBLE);
+                                layout_progress.setVisibility(View.VISIBLE);
+                                buyCredit(Constants.SIXTY_DOLLARS);
+                            }
+                        });
+
+
+                        lp.width = (int)(width * 0.8);
+                        lp.height = (int)(height * 0.7);
+                        dialog.show();
+                        dialog.getWindow().setAttributes(lp);
+                        dialog.show();
+                    }
+                });
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    /**
+     * sends call back to app for buying credit
+     * @param amount which going to be credited
+     */
+    private void buyCredit(String amount){
+        try {
+            Log.e(TAG, "buy amount "+amount);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
 }

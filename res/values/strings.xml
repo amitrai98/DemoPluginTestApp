@@ -14,4 +14,12 @@
     <string name="tip_fourty">TIP $40</string>
     <string name="tip_sixty">TIP $60</string>
     <string name="you_must">You must first add additional credits</string>
+
+    <string name="buy_ten_credit">Buy 10 credits for $10</string>
+    <string name="buy_twenty_credit">Buy 20 credits for $20</string>
+    <string name="buy_fourty_credit">Buy 40 credits for $40</string>
+    <string name="buy_sixty_credit">Buy 60 credits for $60</string>
+    <string name="wait_message">Please Wait</string>
+
+
 </resources>

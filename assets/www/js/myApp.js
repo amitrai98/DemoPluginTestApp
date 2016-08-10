@@ -6,13 +6,13 @@ myApp.controller( "myController", function($scope) {
 	 var flag = false;
 	 $scope.startCalling = function(){
 	 	console.log("enter");
-                 var apiKey = '45598312';
-                 var sessionId = '1_MX40NTU5ODMxMn5-MTQ2NzI2NDExMTI2M35qWEtkVlE0Q2xaUHl2anYvS2d3emowbGZ-fg';
-                 var token = 'T1==cGFydG5lcl9pZD00NTU5ODMxMiZzaWc9MTMxM2ZlN2I1MDc4ZjcyNTg5NTYxYmEwYjgyNWQxZjNlNWI2NzFjNjpzZXNzaW9uX2lkPTFfTVg0ME5UVTVPRE14TW41LU1UUTJOekkyTkRFeE1USTJNMzVxV0V0a1ZsRTBRMnhhVUhsMmFuWXZTMmQzZW1vd2JHWi1mZyZjcmVhdGVfdGltZT0xNDY3MjY0MTIyJm5vbmNlPTAuODYwNzgzMDI2MzIwODU5OCZyb2xlPXB1Ymxpc2hlciZleHBpcmVfdGltZT0xNDY5ODU2MTIy';
+                 var apiKey = '45635122';
+                 var sessionId = '2_MX40NTYzNTEyMn5-MTQ3MDgwMzM2NDQxNH5WbjRMU3h5eCthSkUyNnQzUk1zUnkyQkR-fg';
+                 var token = 'T1==cGFydG5lcl9pZD00NTYzNTEyMiZzaWc9ZmViZmMwZTcyMmM4NDBiMDFmYzg4OGI1OThjOTAxZjMwOTNjMjc5MDpzZXNzaW9uX2lkPTJfTVg0ME5UWXpOVEV5TW41LU1UUTNNRGd3TXpNMk5EUXhOSDVXYmpSTVUzaDVlQ3RoU2tVeU5uUXpVazF6VW5reVFrUi1mZyZjcmVhdGVfdGltZT0xNDcwODAzMzk1Jm5vbmNlPTAuMDY2NzI4ODYzMzk5NDc1ODEmcm9sZT1wdWJsaXNoZXImZXhwaXJlX3RpbWU9MTQ3MzM5NTM5NA==';
                  var obj = '{'
-                 +'"ApiKey":"45598312",'
-                 +'"SessionId":"1_MX40NTU5ODMxMn5-MTQ2NzI2NDExMTI2M35qWEtkVlE0Q2xaUHl2anYvS2d3emowbGZ-fg",'
-                 +'"Token":"T1==cGFydG5lcl9pZD00NTU5ODMxMiZzaWc9MTMxM2ZlN2I1MDc4ZjcyNTg5NTYxYmEwYjgyNWQxZjNlNWI2NzFjNjpzZXNzaW9uX2lkPTFfTVg0ME5UVTVPRE14TW41LU1UUTJOekkyTkRFeE1USTJNMzVxV0V0a1ZsRTBRMnhhVUhsMmFuWXZTMmQzZW1vd2JHWi1mZyZjcmVhdGVfdGltZT0xNDY3MjY0MTIyJm5vbmNlPTAuODYwNzgzMDI2MzIwODU5OCZyb2xlPXB1Ymxpc2hlciZleHBpcmVfdGltZT0xNDY5ODU2MTIy",'
+                 +'"ApiKey":"45635122",'
+                 +'"SessionId":"2_MX40NTYzNTEyMn5-MTQ3MDgwMzM2NDQxNH5WbjRMU3h5eCthSkUyNnQzUk1zUnkyQkR-fg",'
+                 +'"Token":"T1==cGFydG5lcl9pZD00NTYzNTEyMiZzaWc9ZmViZmMwZTcyMmM4NDBiMDFmYzg4OGI1OThjOTAxZjMwOTNjMjc5MDpzZXNzaW9uX2lkPTJfTVg0ME5UWXpOVEV5TW41LU1UUTNNRGd3TXpNMk5EUXhOSDVXYmpSTVUzaDVlQ3RoU2tVeU5uUXpVazF6VW5reVFrUi1mZyZjcmVhdGVfdGltZT0xNDcwODAzMzk1Jm5vbmNlPTAuMDY2NzI4ODYzMzk5NDc1ODEmcm9sZT1wdWJsaXNoZXImZXhwaXJlX3RpbWU9MTQ3MzM5NTM5NA==",'
                  +'"UserType":"Pro",'
                  +'"IsAbleToCall":"false",'
                  +'"ProfileImage":"http://igert2012.videohall.com/images/defaults/small_default_profile.png",'
@@ -26,10 +26,10 @@ myApp.controller( "myController", function($scope) {
         VideoPlugin.initializeVideoCalling(jsonObj, onSuccess, onFail);
 	 	console.log("video");
 //	 		hello.startMakingConnection();
-                 setTimeout(myFunction, 15000);
+                 setTimeout(myFunction, 3000);
 	 };
                  function myFunction() {
-                 alert('Hello');
+
                  VideoPlugin.showLowBalanceWarning("30s");
                  }
 	 $scope.muteCalling = function(){
