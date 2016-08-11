@@ -8,4 +8,5 @@
     <color name="add_credit">#0062e6</color>
     <color name="header">#542A63</color>
     <color name="golden">#F0AF32</color>
+    <color name="insuficinet_bal_bg">#FD4C4C</color>
 </resources>

@@ -3,6 +3,7 @@ package com.evontech.VideoPlugin;
 import android.Manifest;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
@@ -19,6 +20,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -66,7 +68,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private LinearLayout mParentProgressDialog;
     private Chrono mTimerTxt;
     private CardView mPricePopUp;
-    private String mCallPerMinute, mUserBalance, mProfileImageUrl;
+    private String mCallPerMinute, mUserBalance = "0", mProfileImageUrl;
     private RelativeLayout mCallingViewParent;
     private boolean isCallingViewVisible = true;
     private Handler handler = new Handler();
@@ -117,6 +119,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private EditText edt_tipamount = null;
     private LinearLayout layout_progress_tip = null;
     private RelativeLayout layout_others = null;
+    private Button btn_lowbal = null;
 
     //add credit
     private Dialog dialogAddAmount = null;
@@ -131,10 +134,10 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
 
 
-    // todo change color of the tip bottom and hide it put check for low balance and corner rounded
-    // todo increase the text size of credit
-    // todo add checks for pro and normal user for showing different views
-    // todo add check if user is able the call in not then freeze on the add credit screen.
+    //  change color of the tip bottom and hide it put check for low balance and corner rounded (done)
+    //  increase the text size of credit (done)
+    //  add checks for pro and normal user for showing different views (done)
+    //  add check if user is able the call in not then freeze on the add credit screen. (done)
     // todo add check for caller init and receiver init on start of call
 
     @Override
@@ -152,8 +155,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
         if (action != null && !action.isEmpty()){
 
-            if(action.equalsIgnoreCase(ACTION_INIT_CALL))
+            if(action.equalsIgnoreCase(ACTION_INIT_CALL)){
                 initVideoCall(action, args, callbackContext);
+            }
 
             if(action.equalsIgnoreCase(ACTION_ENDCALL)){
                 String object = args.getString(0);
@@ -191,7 +195,8 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
             // todo show tip received dialog to pro only
             if(action.equalsIgnoreCase(ACTION_TIPRECEIVED)){
-                showCreditSendReceive("" , true);
+                if(callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO))
+                    showTipSendReceive("" , true);
 
             }
 
@@ -238,7 +243,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //        String sessonId = OpenTokConfig.SESSION_ID;
 //        String apiKey = OpenTokConfig.API_KEY;
 //        String sessonToken = OpenTokConfig.TOKEN;
-
+            if(callBean.getIsAbleToCall().equalsIgnoreCase("false")){
+                addView();
+                showAddAmountDialog();
+                return ;
+            }
 
 
             if(callBean != null){
@@ -282,14 +291,23 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         layout_header_addcredit = (LinearLayout) mCallView.findViewById(R.id.layout_header_addcredit);
 //        layout_send_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_send_tip);
 
+        if (callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO)){
+            layout_tip.setVisibility(View.INVISIBLE);
+            layout_plus_credit.setVisibility(View.INVISIBLE);
+            layout_header_addcredit.setVisibility(View.INVISIBLE);
+        }
+
 
         setMargins(mCallView, 0, 500,0,0);
 
-        ViewGroup preview = (ViewGroup) mCallView.findViewById(R.id.preview);  // User View
-        mSession.setPreviewView(preview);
+        if(callBean.getIsAbleToCall().equalsIgnoreCase("true")){
+            ViewGroup preview = (ViewGroup) mCallView.findViewById(R.id.preview);  // User View
+            mSession.setPreviewView(preview);
 
-        RelativeLayout playersView = (RelativeLayout) mCallView.findViewById(R.id.pager);  // Subscriber View
-        mSession.setPlayersViewContainer(playersView);
+            RelativeLayout playersView = (RelativeLayout) mCallView.findViewById(R.id.pager);  // Subscriber View
+            mSession.setPlayersViewContainer(playersView);
+        }
+
 
         // Progress bar Views
         mParentProgressDialog = (LinearLayout) mCallView.findViewById(R.id.ll_parent_connecting);
@@ -384,7 +402,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
         if(mCallPerMinute != null ){
 
-            layout_tip_send_receive.setVisibility(View.VISIBLE);
+//            layout_tip_send_receive.setVisibility(View.VISIBLE);
 //            layout_tip.setVisibility(View.VISIBLE);
 //            layout_low_credit.setVisibility(View.VISIBLE);
 
@@ -618,35 +636,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             case R.id.layout_plus_credit:
                 showAddAmountDialog();
                 break;
-            case R.id.layout_close:
-                closeCreditDialog();
-                break;
             case R.id.layout_addmore:
                 addMoreCredit();
                 break;
 
-            case R.id.btn_sendtip:
-                sendTip(null, true);
-                break;
-
-            case R.id.btn_ten_dollar:
-                sendTip(Constants.TEN_DOLLARS, true);
-                break;
-
-            case R.id.btn_twenty_dollar:
-                sendTip(Constants.TWENTY_DOLLARS, true);
-                break;
-
-            case R.id.btn_fourty_dollar:
-                sendTip(Constants.FOURTY_DOLLARS, true);
-                break;
-
-            case R.id.btn_sixty_dollar:
-                sendTip(Constants.SIXTY_DOLLARS, true);
-                break;
-
             case R.id.layout_tip:
-                showSelectTipAmount();
+                showTipDialog();
                 break;
 
             case R.id.layout_header_addcredit:
@@ -817,8 +812,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     }
 
     public void SlideToRight() {
-        Animation slide = null;
-        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
+        Animation slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
                 Animation.RELATIVE_TO_SELF, 5.2f, Animation.RELATIVE_TO_SELF,
                 0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
 
@@ -873,7 +867,8 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                layout_tip.setVisibility(View.VISIBLE);
+                if(!callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO))
+                    layout_tip.setVisibility(View.VISIBLE);
             }
 
             @Override
@@ -945,15 +940,14 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     @Override
     public void onRequestAccessed() {
-//        initCall(mJsonData);
         Log.e(TAG, "y m i commented");
     }
 
     /**
      * returns json for the message
-     * @param message
-     * @param message_type
-     * @return
+     * @param message to be sent to cordova
+     * @param message_type is success or failure
+     * @return returns json object for the message
      */
     private JSONObject getJson(String message, String message_type){
 
@@ -1064,6 +1058,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //            initCall(callBean);
 
 
+
             if (ACTION_INIT_CALL.equals(action)) {
                 mCallBackContext = callbackContext;
                 ((MainActivity) cordova.getActivity()).setActivityListener(this);
@@ -1157,8 +1152,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
      * shows credit dialog to send
      * money from one dialog to another
      */
-    private void showSelectTipAmount(){
+    private void showTipDialog(){
         try{
+
             layout_low_credit.setVisibility(View.INVISIBLE);
             layout_tip_send_receive.setVisibility(View.INVISIBLE);
 //            layout_send_tip.setVisibility(View.VISIBLE);
@@ -1192,59 +1188,64 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     layout_progress_tip =  (LinearLayout) dialogTip.findViewById(R.id.layout_progress_tip);
                     layout_others =  (RelativeLayout) dialogTip.findViewById(R.id.layout_others);
                     txt_creditbal = (TextView) dialogTip.findViewById(R.id.txt_creditbal);
+                    btn_lowbal =  (Button) dialogTip.findViewById(R.id.btn_lowbal);
 
                     layout_close.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             dialogTip.dismiss();
-                            closeCreditDialog();
                         }
                     });
                     layout_addmore.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
                             dialogTip.dismiss();
-                            closeCreditDialog();
                             showAddAmountDialog();
                         }
                     });
                     btn_sendtip.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            layout_progress_tip.setVisibility(View.VISIBLE);
-                            layout_others.setVisibility(View.GONE);
-                            closeCreditDialog();
+
+                            try {
+                                InputMethodManager imm = (InputMethodManager)cordova.
+                                        getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                                imm.hideSoftInputFromWindow(edt_tipamount.getWindowToken(), 0);
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+
+                            String tipAmount = edt_tipamount.getText().toString();
+                            if(!tipAmount.isEmpty()){
+                                sendCreditTip(tipAmount, true);
+                            }else
+                                edt_tipamount.setError("enter tip amount");
+
+
                         }
                     });
                     btn_ten_dollar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            layout_progress_tip.setVisibility(View.VISIBLE);
-                            layout_others.setVisibility(View.GONE);
-                            closeCreditDialog();
+                            sendCreditTip(Constants.TEN_DOLLARS, true);
                         }
                     });
                     btn_twenty_dollar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            layout_progress_tip.setVisibility(View.VISIBLE);
-                            layout_others.setVisibility(View.GONE);
-                            closeCreditDialog();
+                            sendCreditTip(Constants.TWENTY_DOLLARS, true);
                         }
                     });
                     btn_fourty_dollar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            dialogTip.dismiss();
-                            closeCreditDialog();
+                            sendCreditTip(Constants.FOURTY_DOLLARS, true);
                         }
                     });
                     btn_sixty_dollar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            layout_progress_tip.setVisibility(View.VISIBLE);
-                            layout_others.setVisibility(View.GONE);
-                            closeCreditDialog();
+                            sendCreditTip(Constants.SIXTY_DOLLARS, true);
                         }
                     });
 
@@ -1254,31 +1255,13 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     dialogTip.show();
                     dialogTip.getWindow().setAttributes(lp);
                     dialogTip.show();
+                    updateUserBalance(mUserBalance);
                 }
             });
 
         }catch (Exception e){
             e.printStackTrace();
         }
-    }
-
-    /**
-     * closes the credit dialog
-     */
-    private void closeCreditDialog(){
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-//                    layout_low_credit.setVisibility(View.VISIBLE);
-//                    layout_tip_send_receive.setVisibility(View.VISIBLE);
-//                    layout_send_tip.setVisibility(View.INVISIBLE);
-
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        });
     }
 
     /**
@@ -1292,17 +1275,62 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     /**
      * sennds amount to different users
      * @param amount to be sent to other users
-     * @param isCustom if amount is custom or fixed
+     * @param isTip if it is a tip or a credit
      */
-    private void sendTip(String amount, boolean isCustom){
+    private void sendCreditTip(final String amount, final boolean isTip){
         try {
-            if(isCustom){
-                if(!edt_tipamount.getText().toString().isEmpty()){
-                    Log.e(TAG, ""+edt_tipamount.getText().toString());
-                }
-            }else {
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    int tipamount = Integer.parseInt(amount);
+                    int currentbal = Integer.parseInt(mUserBalance);
+                    if (!amount.isEmpty()){
+                        if(currentbal < tipamount && isTip){
+                            if(isTip){
+                                btn_lowbal.setVisibility(View.VISIBLE);
+                                Timer timer = new Timer();
+                                timer.schedule(new TimerTask() {
+                                    public void run() {
+                                        cordova.getActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                btn_lowbal.setVisibility(View.INVISIBLE);
+                                            }
+                                        });
+                                    }
+                                }, 2000);
+                            }
 
-            }
+                        }else {
+                            if(isTip){
+                                layout_progress_tip.setVisibility(View.VISIBLE);
+                                layout_others.setVisibility(View.GONE);
+                            }else {
+                                layout_credit_btns.setVisibility(View.INVISIBLE);
+                                layout_progress.setVisibility(View.VISIBLE);
+                            }
+
+                            JSONObject sendTipJson = new JSONObject();
+                            JSONObject dataJson = new JSONObject();
+                            try {
+                                if(isTip)
+                                    dataJson.put("type","tip");
+                                else
+                                    dataJson.put("type","credit");
+
+                                dataJson.put("amount",""+tipamount);
+                                sendTipJson.put("status", "transaction");
+                                sendTipJson.put("data", dataJson);
+                                Log.e(TAG, ""+sendTipJson.toString());
+                                mCallBackContext.successMessage(sendTipJson);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            });
+
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -1316,6 +1344,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private void showAddAmountDialog(){
         {
             try{
+
                 layout_low_credit.setVisibility(View.INVISIBLE);
                 layout_tip_send_receive.setVisibility(View.INVISIBLE);
 //            layout_send_tip.setVisibility(View.VISIBLE);
@@ -1350,49 +1379,40 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                             @Override
                             public void onClick(View v) {
                                 dialogAddAmount.dismiss();
-                                closeCreditDialog();
-
                             }
                         });
                         btn_buy_ten.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                layout_credit_btns.setVisibility(View.INVISIBLE);
-                                layout_progress.setVisibility(View.VISIBLE);
-                                buyCredit(Constants.TEN_DOLLARS);
+                                sendCreditTip(Constants.TEN_DOLLARS, false);
                             }
                         });
                         btn_buy_twetnty.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                layout_credit_btns.setVisibility(View.INVISIBLE);
-                                layout_progress.setVisibility(View.VISIBLE);
-                                buyCredit(Constants.TWENTY_DOLLARS);
+                                sendCreditTip(Constants.TWENTY_DOLLARS, false);
                             }
                         });
                         btn_buy_fourty.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                layout_credit_btns.setVisibility(View.INVISIBLE);
-                                layout_progress.setVisibility(View.VISIBLE);
-                                buyCredit(Constants.FOURTY_DOLLARS);
+                                sendCreditTip(Constants.FOURTY_DOLLARS, false);
                             }
                         });
                         btn_buy_sixty.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                layout_credit_btns.setVisibility(View.INVISIBLE);
-                                layout_progress.setVisibility(View.VISIBLE);
-                                buyCredit(Constants.SIXTY_DOLLARS);
+                                sendCreditTip(Constants.SIXTY_DOLLARS, false);
                             }
                         });
 
 
                         lp.width = (int)(width * 0.8);
-                        lp.height = (int)(height * 0.65);
+                        lp.height = (int)(height * 0.8);
                         dialogAddAmount.show();
                         dialogAddAmount.getWindow().setAttributes(lp);
                         dialogAddAmount.show();
+                        updateUserBalance(mUserBalance);
                     }
                 });
 
@@ -1402,30 +1422,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         }
     }
 
-
-    // todo send the json as in the comment inside method
-    /**
-     * sends call back to app for buying credit
-     * @param amount which going to be credited
-     */
-    private void buyCredit(String amount){
-        try {
-            JSONObject json = getJson(Constants.INIT_COMPLETE, SUCCESS);
-            mCallBackContext.successMessage(json);
-            //{"status":"transaction","data":{"type":"credit","amount":"10"}}
-
-            Log.e(TAG, "buy amount "+amount);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
     /**
      * shows dialog on screen if user has received or send any tip
      * @param amount to be sent or received
      * @param isReceived or sent
      */
-    private void showCreditSendReceive(final String amount, final boolean isReceived){
+    private void showTipSendReceive(final String amount, final boolean isReceived){
         try {
             cordova.getActivity().runOnUiThread(new Runnable() {
                 @Override

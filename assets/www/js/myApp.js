@@ -11,8 +11,8 @@ myApp.controller("myController", function($scope) {
         +'"ApiKey":"45635122",'
         +'"SessionId":"2_MX40NTYzNTEyMn5-MTQ3MDgwMzM2NDQxNH5WbjRMU3h5eCthSkUyNnQzUk1zUnkyQkR-fg",'
         +'"Token":"T1==cGFydG5lcl9pZD00NTYzNTEyMiZzaWc9ZmViZmMwZTcyMmM4NDBiMDFmYzg4OGI1OThjOTAxZjMwOTNjMjc5MDpzZXNzaW9uX2lkPTJfTVg0ME5UWXpOVEV5TW41LU1UUTNNRGd3TXpNMk5EUXhOSDVXYmpSTVUzaDVlQ3RoU2tVeU5uUXpVazF6VW5reVFrUi1mZyZjcmVhdGVfdGltZT0xNDcwODAzMzk1Jm5vbmNlPTAuMDY2NzI4ODYzMzk5NDc1ODEmcm9sZT1wdWJsaXNoZXImZXhwaXJlX3RpbWU9MTQ3MzM5NTM5NA==",'
-        +'"UserType":"Pro",'
-        +'"IsAbleToCall":"false",'
+        +'"UserType":"User",'
+        +'"IsAbleToCall":"true",'
         +'"ProfileImage":"http://igert2012.videohall.com/images/defaults/small_default_profile.png",'
         +'"UserName":"Abella",'
         +'"CallPerMinute":"2",'
@@ -26,7 +26,7 @@ myApp.controller("myController", function($scope) {
         VideoPlugin.initializeVideoCalling(jsonObj, onSuccess, onFail);
         console.log("video");
         //          hello.startMakingConnection();
-        setTimeout(myFunction3, 3000);
+        setTimeout(myFunction2, 10000);
     };
 
 //    function myFunction() {
@@ -38,15 +38,15 @@ myApp.controller("myController", function($scope) {
 //            setTimeout(myFunction3, 3000);
 //        });
 //    }
-//    function myFunction2() {
-//            VideoPlugin.receivedResponseFromAPI("credit", "success", "0", function() {
-//                console.log('success==>');
-//    			setTimeout(myFunction3, 3000);
-//            }, function() {
-//                console.log('error==>');
-//                setTimeout(myFunction3, 3000);
-//            });
-//        }
+    function myFunction2() {
+            VideoPlugin.receivedResponseFromAPI("credit", "success", "0", function() {
+                console.log('success==>');
+    			setTimeout(myFunction3, 3000);
+            }, function() {
+                console.log('error==>');
+                setTimeout(myFunction3, 3000);
+            });
+        }
 
 	function myFunction3() {
 			VideoPlugin.getUserBalance(30, function() {

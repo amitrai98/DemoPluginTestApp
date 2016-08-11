@@ -7,6 +7,7 @@
 
     <RelativeLayout
         android:background="@color/semi_transparent"
+        android:animateLayoutChanges="true"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -27,6 +28,7 @@
 
 
         <RelativeLayout
+            android:animateLayoutChanges="true"
             android:layout_below="@+id/layout_close_add_credit"
             android:layout_marginTop="5dp"
             android:layout_marginLeft="20dp"
@@ -63,8 +65,8 @@
 
                 <TextView
                     android:id="@+id/txt_creditbal"
+                    android:textSize="16dp"
                     android:layout_gravity="center_horizontal"
-                    android:text="You have 81.46 credits"
                     android:textColor="@color/white"
                     android:layout_centerHorizontal="true"
                     android:layout_width="wrap_content"
