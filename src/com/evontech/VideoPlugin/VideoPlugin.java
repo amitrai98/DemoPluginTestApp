@@ -10,6 +10,7 @@ import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.CardView;
+import android.text.Html;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -39,6 +40,9 @@ import org.apache.cordova.CordovaWebView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import io.cordova.hellocordova.MainActivity;
 import io.cordova.hellocordova.R;
@@ -92,13 +96,17 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private RelativeLayout layout_tip_send_receive = null;
     private RelativeLayout layout_low_credit = null;
     private RelativeLayout layout_tip = null;
-//    private ImageView img_add_credit = null;
+    //    private ImageView img_add_credit = null;
     private RelativeLayout layout_plus_credit = null;
     private ProgressDialog dialogWait = null;
+    private TextView txt_tipsent = null;
+    private TextView tv_username = null;
+    private LinearLayout layout_header_addcredit = null;
 
 //    private RelativeLayout layout_send_tip = null;
 
     // tip dialog
+    private Dialog dialogTip = null;
     private RelativeLayout layout_close = null;
     private LinearLayout layout_addmore = null;
     private Button btn_sendtip = null;
@@ -111,6 +119,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private RelativeLayout layout_others = null;
 
     //add credit
+    private Dialog dialogAddAmount = null;
     private RelativeLayout layout_close_add_credit = null;
     private Button btn_buy_ten = null;
     private Button btn_buy_twetnty = null;
@@ -118,8 +127,15 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private Button btn_buy_sixty = null;
     private LinearLayout layout_progress = null;
     private LinearLayout layout_credit_btns = null;
+    private TextView txt_creditbal = null;
 
 
+
+    // todo change color of the tip bottom and hide it put check for low balance and corner rounded
+    // todo increase the text size of credit
+    // todo add checks for pro and normal user for showing different views
+    // todo add check if user is able the call in not then freeze on the add credit screen.
+    // todo add check for caller init and receiver init on start of call
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -145,24 +161,46 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 endCall(object);
             }
 
+
+            //reponses receivedResponseFromAPI("credit","success","0");
+            // todo check the credit of tip send success and remove the dialogs
+            // todo "status - credit or tip " "response type- success or errr", "error message in case of failure or updated amount in case of success"
+            // todo close the status or credit dialog after reading response
+            // todo in case of 0 amount, remove low balance dialog if i am pro
             if(action.equalsIgnoreCase(ACTION_APIRESPONSE)){
-                initVideoCall(action, args, callbackContext);
+                if(layout_low_credit != null &&
+                        layout_low_credit.getVisibility() == View.VISIBLE){
+                    cordova.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            layout_low_credit.setVisibility(View.INVISIBLE);
+
+                        }
+                    });
+
+                }
 
             }
 
+            // todo in case of null amount the other user has low balance show low balnce dialog
+            //VideoPlugin.showLowBalanceWarning(“10s”);
             if(action.equalsIgnoreCase(ACTION_BALANCE_WARNING)){
                 showLowBalanceWarning();
 
             }
 
+            // todo show tip received dialog to pro only
             if(action.equalsIgnoreCase(ACTION_TIPRECEIVED)){
-                initVideoCall(action, args, callbackContext);
+                showCreditSendReceive("" , true);
 
             }
 
-            if(action.equalsIgnoreCase(ACTION_GETUSERBALANCE)){
-                initVideoCall(action, args, callbackContext);
 
+            if(action.equalsIgnoreCase(ACTION_GETUSERBALANCE)){
+                if (args.length() >0){
+                    mUserBalance = args.get(0).toString();
+                    updateUserBalance(mUserBalance);
+                }
             }
 
         }
@@ -182,7 +220,6 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             String sessonId = callBean.getSessionId();//object.getString("sessonId");
             String sessonToken = callBean.getToken();//object.getString("sessonToken");
             mCallPerMinute = callBean.getCallPerMinute();//object.getString("callPerMinute");
-            mUserBalance = "12121";//object.getString("userBalance");
             mProfileImageUrl = callBean.getProfileImage();//object.getString("profileImageUrl");
 
 //            String apiKey = args.get(0).toString();//.getString("apiKey");
@@ -240,6 +277,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         layout_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_tip);
         layout_low_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_low_credit);
         layout_plus_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_plus_credit);
+        txt_tipsent = (TextView) mCallView.findViewById(R.id.txt_tipsent);
+        tv_username = (TextView) mCallView.findViewById(R.id.tv_username);
+        layout_header_addcredit = (LinearLayout) mCallView.findViewById(R.id.layout_header_addcredit);
 //        layout_send_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_send_tip);
 
 
@@ -286,7 +326,13 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         mDisconnectBtn.setOnClickListener(this);
         mSwipeBtn.setOnClickListener(this);
         layout_plus_credit.setOnClickListener(this);
+        layout_tip.setOnClickListener(this);
+        layout_header_addcredit.setOnClickListener(this);
 
+
+        if(callBean != null && callBean.getUserName()
+                != null && !callBean.getUserName().isEmpty())
+            tv_username.setText(callBean.getUserName());
 
         Runnable runnable = new Runnable() {
             @Override
@@ -353,6 +399,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             mSwipeBtn.setVisibility(View.VISIBLE);
             mCallView.setEnabled(true);
             mCallView.setOnClickListener(this);
+
 
             mTimerTxt.setBase(SystemClock.elapsedRealtime());
             mTimerTxt.start();
@@ -569,7 +616,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 }
                 break;
             case R.id.layout_plus_credit:
-                showSelectTipAmount();
+                showAddAmountDialog();
                 break;
             case R.id.layout_close:
                 closeCreditDialog();
@@ -597,6 +644,16 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             case R.id.btn_sixty_dollar:
                 sendTip(Constants.SIXTY_DOLLARS, true);
                 break;
+
+            case R.id.layout_tip:
+                showSelectTipAmount();
+                break;
+
+            case R.id.layout_header_addcredit:
+                showAddAmountDialog();
+                break;
+
+
         }
     }
 
@@ -1111,11 +1168,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 public void run() {
                     // custom dialog
                     // custom dialog
-                    final Dialog dialog = new Dialog(cordova.getActivity());
-                    dialog.setContentView(R.layout.send_tip);
-                    dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    dialogTip = new Dialog(cordova.getActivity());
+                    dialogTip.setContentView(R.layout.send_tip);
+                    dialogTip.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
                     WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-                    lp.copyFrom(dialog.getWindow().getAttributes());
+                    lp.copyFrom(dialogTip.getWindow().getAttributes());
                     DisplayMetrics displaymetrics = new DisplayMetrics();
                     cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
                     int height = displaymetrics.heightPixels;
@@ -1123,29 +1180,30 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
 
 
-                    layout_close =  (RelativeLayout) dialog.findViewById(R.id.layout_close);
+                    layout_close =  (RelativeLayout) dialogTip.findViewById(R.id.layout_close);
 
-                    layout_addmore =  (LinearLayout) dialog.findViewById(R.id.layout_addmore);
-                    btn_sendtip =  (Button) dialog.findViewById(R.id.btn_sendtip);
-                    btn_ten_dollar =  (Button) dialog.findViewById(R.id.btn_ten_dollar);
-                    btn_twenty_dollar =  (Button) dialog.findViewById(R.id.btn_twenty_dollar);
-                    btn_fourty_dollar =  (Button) dialog.findViewById(R.id.btn_fourty_dollar);
-                    btn_sixty_dollar =  (Button) dialog.findViewById(R.id.btn_sixty_dollar);
-                    edt_tipamount =  (EditText) dialog.findViewById(R.id.edt_tipamount);
-                    layout_progress_tip =  (LinearLayout) dialog.findViewById(R.id.layout_progress_tip);
-                    layout_others =  (RelativeLayout) dialog.findViewById(R.id.layout_others);
+                    layout_addmore =  (LinearLayout) dialogTip.findViewById(R.id.layout_addmore);
+                    btn_sendtip =  (Button) dialogTip.findViewById(R.id.btn_sendtip);
+                    btn_ten_dollar =  (Button) dialogTip.findViewById(R.id.btn_ten_dollar);
+                    btn_twenty_dollar =  (Button) dialogTip.findViewById(R.id.btn_twenty_dollar);
+                    btn_fourty_dollar =  (Button) dialogTip.findViewById(R.id.btn_fourty_dollar);
+                    btn_sixty_dollar =  (Button) dialogTip.findViewById(R.id.btn_sixty_dollar);
+                    edt_tipamount =  (EditText) dialogTip.findViewById(R.id.edt_tipamount);
+                    layout_progress_tip =  (LinearLayout) dialogTip.findViewById(R.id.layout_progress_tip);
+                    layout_others =  (RelativeLayout) dialogTip.findViewById(R.id.layout_others);
+                    txt_creditbal = (TextView) dialogTip.findViewById(R.id.txt_creditbal);
 
                     layout_close.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            dialog.dismiss();
+                            dialogTip.dismiss();
                             closeCreditDialog();
                         }
                     });
                     layout_addmore.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            dialog.dismiss();
+                            dialogTip.dismiss();
                             closeCreditDialog();
                             showAddAmountDialog();
                         }
@@ -1177,7 +1235,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     btn_fourty_dollar.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            dialog.dismiss();
+                            dialogTip.dismiss();
                             closeCreditDialog();
                         }
                     });
@@ -1193,9 +1251,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
                     lp.width = (int)(width * 0.8);
                     lp.height = (int)(height * 0.8);
-                    dialog.show();
-                    dialog.getWindow().setAttributes(lp);
-                    dialog.show();
+                    dialogTip.show();
+                    dialogTip.getWindow().setAttributes(lp);
+                    dialogTip.show();
                 }
             });
 
@@ -1212,8 +1270,8 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             @Override
             public void run() {
                 try {
-                    layout_low_credit.setVisibility(View.VISIBLE);
-                    layout_tip_send_receive.setVisibility(View.VISIBLE);
+//                    layout_low_credit.setVisibility(View.VISIBLE);
+//                    layout_tip_send_receive.setVisibility(View.VISIBLE);
 //                    layout_send_tip.setVisibility(View.INVISIBLE);
 
                 }catch (Exception e){
@@ -1266,31 +1324,32 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     @Override
                     public void run() {
 
-                        final Dialog dialog = new Dialog(cordova.getActivity());
-                        dialog.setContentView(R.layout.buy_credit);
-                        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                        dialogAddAmount = new Dialog(cordova.getActivity());
+                        dialogAddAmount.setContentView(R.layout.buy_credit);
+                        dialogAddAmount.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
                         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-                        lp.copyFrom(dialog.getWindow().getAttributes());
+                        lp.copyFrom(dialogAddAmount.getWindow().getAttributes());
                         DisplayMetrics displaymetrics = new DisplayMetrics();
                         cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
                         int height = displaymetrics.heightPixels;
                         int width = displaymetrics.widthPixels;
 
 
-                        layout_close_add_credit = (RelativeLayout) dialog.findViewById(R.id.layout_close_add_credit);
+                        layout_close_add_credit = (RelativeLayout) dialogAddAmount.findViewById(R.id.layout_close_add_credit);
 
 
-                        btn_buy_ten =  (Button) dialog.findViewById(R.id.btn_buy_ten);
-                        btn_buy_twetnty =  (Button) dialog.findViewById(R.id.btn_buy_twetnty);
-                        btn_buy_fourty =  (Button) dialog.findViewById(R.id.btn_buy_fourty);
-                        btn_buy_sixty =  (Button) dialog.findViewById(R.id.btn_buy_sixty);
-                        layout_progress = (LinearLayout) dialog.findViewById(R.id.layout_progress);
-                        layout_credit_btns = (LinearLayout) dialog.findViewById(R.id.layout_credit_btns);
+                        btn_buy_ten =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_ten);
+                        btn_buy_twetnty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_twetnty);
+                        btn_buy_fourty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_fourty);
+                        btn_buy_sixty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_sixty);
+                        layout_progress = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_progress);
+                        layout_credit_btns = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_credit_btns);
+                        txt_creditbal = (TextView) dialogAddAmount.findViewById(R.id.txt_creditbal);
 
                         layout_close_add_credit.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                dialog.dismiss();
+                                dialogAddAmount.dismiss();
                                 closeCreditDialog();
 
                             }
@@ -1330,10 +1389,10 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
 
                         lp.width = (int)(width * 0.8);
-                        lp.height = (int)(height * 0.7);
-                        dialog.show();
-                        dialog.getWindow().setAttributes(lp);
-                        dialog.show();
+                        lp.height = (int)(height * 0.65);
+                        dialogAddAmount.show();
+                        dialogAddAmount.getWindow().setAttributes(lp);
+                        dialogAddAmount.show();
                     }
                 });
 
@@ -1344,13 +1403,79 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     }
 
 
+    // todo send the json as in the comment inside method
     /**
      * sends call back to app for buying credit
      * @param amount which going to be credited
      */
     private void buyCredit(String amount){
         try {
+            JSONObject json = getJson(Constants.INIT_COMPLETE, SUCCESS);
+            mCallBackContext.successMessage(json);
+            //{"status":"transaction","data":{"type":"credit","amount":"10"}}
+
             Log.e(TAG, "buy amount "+amount);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * shows dialog on screen if user has received or send any tip
+     * @param amount to be sent or received
+     * @param isReceived or sent
+     */
+    private void showCreditSendReceive(final String amount, final boolean isReceived){
+        try {
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(isReceived)
+                        txt_tipsent.setText(amount +" tips received");
+                    else
+                        txt_tipsent.setText(amount +" tips sent");
+                }
+            });
+
+
+            layout_tip_send_receive.setVisibility(View.VISIBLE);
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                public void run() {
+
+                    cordova.getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            layout_tip_send_receive.setVisibility(View.INVISIBLE);
+                        }
+                    });
+                }
+            }, 4000);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * updates user balance
+     * @param mUserBalance is the credit balance of the user
+     */
+    private void updateUserBalance(final String mUserBalance){
+        try {
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (dialogAddAmount != null && dialogAddAmount.isShowing() &&
+                            txt_creditbal != null ){
+                        txt_creditbal.setText(Html.fromHtml("<font color=\"#c5c5c5\">" + "You have " + "</font>" + "<font color=\"#F0AF32\">" + mUserBalance+ "</font>"+ "<font color=\"#c5c5c5\">" + " credits"+"</font>"));
+                    }else if(dialogTip != null && dialogTip.isShowing() &&
+                            txt_creditbal != null ){
+                        txt_creditbal.setText(Html.fromHtml("<font color=\"#c5c5c5\">" + "You have " + "</font>" + "<font color=\"#F0AF32\">" + mUserBalance+ "</font>"+ "<font color=\"#c5c5c5\">" + " credits"+"</font>"));
+                    }
+                }
+            });
+
         }catch (Exception e){
             e.printStackTrace();
         }

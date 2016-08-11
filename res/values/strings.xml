@@ -20,6 +20,7 @@
     <string name="buy_fourty_credit">Buy 40 credits for $40</string>
     <string name="buy_sixty_credit">Buy 60 credits for $60</string>
     <string name="wait_message">Please Wait</string>
+    <string name="credits">CREDITS</string>
 
 
 </resources>

@@ -6,4 +6,6 @@
     <color name="semi_transparent">#99000000</color>
     <color name="black">#000000</color>
     <color name="add_credit">#0062e6</color>
+    <color name="header">#542A63</color>
+    <color name="golden">#F0AF32</color>
 </resources>

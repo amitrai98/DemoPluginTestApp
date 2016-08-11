@@ -5,21 +5,55 @@
                 android:layout_height="match_parent"
                 android:background="@android:color/transparent">
 
-
-    <TextView
-        android:id="@+id/tv_username"
+    <RelativeLayout
+        android:padding="5dp"
+        android:background="@color/header"
+        android:id="@+id/layout_username"
         android:layout_width="match_parent"
-        android:layout_height="90px"
-        android:layout_alignParentTop="true"
-        android:background="@android:color/transparent"
-        android:gravity="center"
-        android:padding="10dp"
-        android:textColor="@android:color/white" />
+        android:layout_height="120px">
+        <TextView
+            android:id="@+id/tv_username"
+            android:textStyle="bold"
+            android:text="name"
+            android:textSize="16dp"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white" />
+
+        <LinearLayout
+            android:id="@+id/layout_header_addcredit"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:layout_centerVertical="true"
+            android:layout_alignParentRight="true">
+            <ImageView
+                android:src="@drawable/add"
+                android:layout_gravity="center_vertical"
+                android:layout_width="10dp"
+                android:layout_height="10dp"/>
+            <TextView
+                android:text="@string/credits"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:gravity="center"
+                android:layout_gravity="center_vertical"
+                android:textSize="14dp"
+                android:layout_marginLeft="2dp"
+                android:textColor="@color/golden" />
+        </LinearLayout>
+
+    </RelativeLayout>
+
+
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/tv_username">
+        android:layout_below="@+id/layout_username">
 
         <RelativeLayout
             android:id="@+id/pager"
@@ -105,12 +139,12 @@
             android:layout_marginTop="20dp" />
 
         <include
-            android:visibility="visible"
+            android:id="@+id/layout_tip_send_receive"
+            android:visibility="invisible"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
             android:layout_toRightOf="@+id/layout_tip"
             android:layout_toLeftOf="@+id/layout_refresh"
-            android:id="@+id/layout_tip_send_receive"
             android:layout_marginTop="20dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
