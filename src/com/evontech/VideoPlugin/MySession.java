@@ -47,15 +47,19 @@ public class MySession extends Session {
     public static boolean CALL_REJECTED = false;
     private boolean mCaller = false;
 
+    private int CALL_QUALITY = Constants.LOW;
+
     private final String TAG = getClass().getSimpleName();
 
 
-    public MySession(Context context, SessionListeners listeners, String apiKey, String sessonId, boolean mCaller) {
+    public MySession(Context context, SessionListeners listeners, String apiKey, String sessonId,
+                     boolean mCaller, int CALL_QUALITY) {
         super(context, apiKey, sessonId);
         this.mContext = context;
         this.mSessionListener = listeners;
         this.mCaller = mCaller;
         CALL_STARTED = false;
+        this.CALL_QUALITY = CALL_QUALITY;
     }
 
     // public methods
@@ -73,12 +77,28 @@ public class MySession extends Session {
     protected void onConnected() {
 
         CALL_CONNECTED = true;
-        mPublisher = new Publisher(mContext,
-                "MyPublisher",
-                Publisher.CameraCaptureResolution.LOW,
-                Publisher.CameraCaptureFrameRate.FPS_15);
+        if (CALL_QUALITY == Constants.LOW){
+            mPublisher = new Publisher(mContext,
+                    "MyPublisher",
+                    Publisher.CameraCaptureResolution.LOW,
+                    Publisher.CameraCaptureFrameRate.FPS_7);
+        }else if(CALL_QUALITY == Constants.MEDIUM){
+            mPublisher = new Publisher(mContext,
+                    "MyPublisher",
+                    Publisher.CameraCaptureResolution.MEDIUM,
+                    Publisher.CameraCaptureFrameRate.FPS_15);
+        }else if(CALL_QUALITY == Constants.HIGH){
+            mPublisher = new Publisher(mContext,
+                    "MyPublisher",
+                    Publisher.CameraCaptureResolution.HIGH,
+                    Publisher.CameraCaptureFrameRate.FPS_15);
+        }else {
+            mPublisher = new Publisher(mContext,
+                    "MyPublisher",
+                    Publisher.CameraCaptureResolution.LOW,
+                    Publisher.CameraCaptureFrameRate.FPS_7);
+        }
         publish(mPublisher);
-
         // Add video preview
         RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
@@ -89,6 +109,7 @@ public class MySession extends Session {
 
 //        presentText("Welcome to OpenTok Chat.");
     }
+
 
     @Override
     protected void onStreamReceived(Stream stream) {

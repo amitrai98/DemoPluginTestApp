@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="speedtest-1.10-sources">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/speedtest-1.10-sources.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

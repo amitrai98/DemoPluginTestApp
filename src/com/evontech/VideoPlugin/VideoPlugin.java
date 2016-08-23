@@ -28,6 +28,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.opentok.android.OpentokError;
@@ -39,6 +40,7 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
+import org.apache.cordova.LOG;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,13 +48,15 @@ import org.json.JSONObject;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import fr.bmartel.speedtest.ISpeedTestListener;
+import fr.bmartel.speedtest.SpeedTestError;
+import fr.bmartel.speedtest.SpeedTestReport;
+import fr.bmartel.speedtest.SpeedTestSocket;
 import io.cordova.hellocordova.MainActivity;
 import io.cordova.hellocordova.R;
 
 
-/**
- * Created by amit rai on 3/7/2016.
- */
+
 public class VideoPlugin extends CordovaPlugin implements SessionListeners, ActivityListener, View.OnClickListener {
     public static final String ACTION_INIT_CALL = "initializeVideoCalling";
     public static final String ACTION_ENDCALL = "endCalling";
@@ -67,18 +71,18 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private ViewGroup mViewGroup;
     private LinearLayout mParentProgressDialog;
     private Chrono mTimerTxt;
-    private CardView mPricePopUp;
+    private CardView mPricePopUp = null;
     private String mCallPerMinute, mUserBalance = "0", mProfileImageUrl;
     private RelativeLayout mCallingViewParent;
     private boolean isCallingViewVisible = true;
     private Handler handler = new Handler();
     private Runnable callRunnable;
     private CallbackContext mCallBackContext;
-    private long mCallTime;
+    private long mCallTime = 0;
     private boolean resumeHasRun = false;
-    private ImageView mProfilePicConnecting;
-    private ImageView mImageNonView;
-    private JSONArray mJsonData;
+    private ImageView mProfilePicConnecting = null;
+    private ImageView mImageNonView = null;
+    private JSONArray mJsonData = null;
     private boolean CALL_DISCONNECT = false;
 //    private com.listeners.SessionListeners sessionListeners = null;
 
@@ -104,6 +108,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private TextView txt_tipsent = null;
     private TextView tv_username = null;
     private LinearLayout layout_header_addcredit = null;
+    private TextView txt_low_balance = null;
 
 //    private RelativeLayout layout_send_tip = null;
 
@@ -132,13 +137,19 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     private LinearLayout layout_credit_btns = null;
     private TextView txt_creditbal = null;
 
+    //success dialog
+    private Dialog dialogCreditSuccess = null;
+
+
+    private JSONObject jsonResponse =null;
+
 
 
     //  change color of the tip bottom and hide it put check for low balance and corner rounded (done)
     //  increase the text size of credit (done)
     //  add checks for pro and normal user for showing different views (done)
     //  add check if user is able the call in not then freeze on the add credit screen. (done)
-    // todo add check for caller init and receiver init on start of call
+    //  add check for caller init and receiver init on start of call (done)
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -151,11 +162,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     }
 
     @Override
-    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+    public boolean execute(String action, final JSONArray args, CallbackContext callbackContext) throws JSONException {
 
         if (action != null && !action.isEmpty()){
 
             if(action.equalsIgnoreCase(ACTION_INIT_CALL)){
+                //checks current connection bandwidth
                 initVideoCall(action, args, callbackContext);
             }
 
@@ -166,37 +178,92 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             }
 
 
-            //reponses receivedResponseFromAPI("credit","success","0");
-            // todo check the credit of tip send success and remove the dialogs
-            // todo "status - credit or tip " "response type- success or errr", "error message in case of failure or updated amount in case of success"
-            // todo close the status or credit dialog after reading response
+            //responses receivedResponseFromAPI("credit","success","0");
+            // done check the credit of tip send success and remove the dialogs
+            // done "status - credit or tip " "response type- success or error", "error message in case of failure or updated amount in case of success"
+            // done close the status or credit dialog after reading response
             // todo in case of 0 amount, remove low balance dialog if i am pro
             if(action.equalsIgnoreCase(ACTION_APIRESPONSE)){
-                if(layout_low_credit != null &&
-                        layout_low_credit.getVisibility() == View.VISIBLE){
-                    cordova.getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            layout_low_credit.setVisibility(View.INVISIBLE);
 
+                cordova.getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String transaction_type = null;
+                        String amount = null;
+                        String status = null;
+
+                        if(args != null && args.length() >0){
+                            try {
+                                transaction_type = args.get(0).toString();
+                                status = args.get(1).toString();
+                                amount = args.get(2).toString();
+
+                                if (transaction_type.equalsIgnoreCase("tip")){
+                                    if (status.equalsIgnoreCase("success")){
+                                        showTipSendReceive(amount, false);
+                                    }else {
+                                        Toast.makeText(cordova.getActivity(), cordova.getActivity()
+                                                        .getString(R.string.tip_send_failure_message),
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+
+                                }else if(transaction_type.equalsIgnoreCase("credit")){
+                                    if (status.equalsIgnoreCase("success")){
+                                        if(layout_low_credit != null &&
+                                                layout_low_credit.getVisibility() == View.VISIBLE) {
+                                            cordova.getActivity().runOnUiThread(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    layout_low_credit.setVisibility(View.INVISIBLE);
+                                                }
+                                            });
+                                        }
+                                        if(dialogAddAmount != null && dialogAddAmount.isShowing())
+                                            dialogAddAmount.dismiss();
+                                        showCreditSuccessDialog(amount);
+
+                                    }else {
+                                        Toast.makeText(cordova.getActivity(), cordova.getActivity()
+                                                        .getString(R.string.credit_add_failure_message),
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
                         }
-                    });
-
-                }
-
+                    }
+                });
             }
 
-            // todo in case of null amount the other user has low balance show low balnce dialog
-            //VideoPlugin.showLowBalanceWarning(“10s”);
             if(action.equalsIgnoreCase(ACTION_BALANCE_WARNING)){
-                showLowBalanceWarning();
+                if(args.length() >0 && !args.get(0).toString().equalsIgnoreCase("null") &&
+                        callBean != null && callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO))
+                    showLowBalanceWarning(true, null);
+                else{
+                    try {
+                        if(args.length() == 0)
+                            return false;
+                        String amount = args.get(0).toString();
+                        showLowBalanceWarning(false, amount);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
 
             }
 
             // todo show tip received dialog to pro only
             if(action.equalsIgnoreCase(ACTION_TIPRECEIVED)){
-                if(callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO))
-                    showTipSendReceive("" , true);
+                if(callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO)){
+                    try {
+                        if(args.length() >0)
+                            showTipSendReceive(args.get(0).toString() , true);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
 
             }
 
@@ -214,9 +281,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     /**
      * initiates video calling
-     * @param callBean
+     * @param callBean all initial json data for calling
      */
-    private void initCall(CallBean callBean) {
+    private void initCall(CallBean callBean, int CALL_QUALITY) {
         try {
             mDisconnect = false;
             call_initialized = true;
@@ -243,6 +310,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //        String sessonId = OpenTokConfig.SESSION_ID;
 //        String apiKey = OpenTokConfig.API_KEY;
 //        String sessonToken = OpenTokConfig.TOKEN;
+
             if(callBean.getIsAbleToCall().equalsIgnoreCase("false")){
                 addView();
                 showAddAmountDialog();
@@ -254,13 +322,13 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 mCaller = false;
                 JSONObject json = getJson(Constants.INIT_COMPLETE, SUCCESS);
                 mCallBackContext.successMessage(json);
-                mSession = new MySession(cordova.getActivity(), this, apiKey, sessonId, false);
+                mSession = new MySession(cordova.getActivity(), this, apiKey, sessonId, false, CALL_QUALITY);
             }
             else{
                 mCaller = true;
                 JSONObject json = getJson(Constants.INITIALIZATION_COMPLETE, SUCCESS);
                 mCallBackContext.successMessage(json);
-                mSession = new MySession(cordova.getActivity(), this, apiKey, sessonId, true);
+                mSession = new MySession(cordova.getActivity(), this, apiKey, sessonId, true, CALL_QUALITY);
             }
 
             addView();
@@ -276,6 +344,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     }
 
+    /**
+     * adds the video calling view to the parrent layout.
+     */
     private void addView() {
         mViewGroup = (ViewGroup) webView.getView();
 
@@ -285,6 +356,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         layout_tip_send_receive = (RelativeLayout) mCallView.findViewById(R.id.layout_tip_send_receive);
         layout_tip = (RelativeLayout) mCallView.findViewById(R.id.layout_tip);
         layout_low_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_low_credit);
+        txt_low_balance = (TextView) mCallView.findViewById(R.id.txt_lowbalance);
         layout_plus_credit = (RelativeLayout) mCallView.findViewById(R.id.layout_plus_credit);
         txt_tipsent = (TextView) mCallView.findViewById(R.id.txt_tipsent);
         tv_username = (TextView) mCallView.findViewById(R.id.tv_username);
@@ -313,11 +385,13 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         mParentProgressDialog = (LinearLayout) mCallView.findViewById(R.id.ll_parent_connecting);
         mProfilePicConnecting = (ImageView) mCallView.findViewById(R.id.iv_connecting_img);
         TextView price = (TextView) mCallView.findViewById(R.id.tv_dialog_price);
-        price.setText("Once connected this video chat \n will be billed at " + mCallPerMinute + " per min.");
+        price.setText(cordova.getActivity().getString(R.string.call_connect_price));//("Once connected this video chat \n will be billed at " + mCallPerMinute + " per min.");
 
         //        creator.into(mProfilePicConnecting);
         ProgressBar progressbar = (ProgressBar) mCallView.findViewById(R.id.pb_connecting);
-        progressbar.getIndeterminateDrawable().setColorFilter(cordova.getActivity().getResources().getColor(android.R.color.holo_green_dark), android.graphics.PorterDuff.Mode.SRC_IN);
+        progressbar.getIndeterminateDrawable().setColorFilter(ContextCompat.
+                        getColor(cordova.getActivity(), android.R.color.holo_green_dark),
+                android.graphics.PorterDuff.Mode.SRC_IN);
         mNoneView = mCallView.findViewById(R.id.non_view);
         mImageNonView = (ImageView) mCallView.findViewById(R.id.iv_no_view_img);
 //        creator.into(mImageNonView);
@@ -429,6 +503,10 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         }
     }
 
+    /**
+     * animates the visibility of the views to visible
+     *
+     */
     private void visibleCallingViews() {
 //        mCallingViewParent.setVisibility(View.VISIBLE);
         SlideToAbove();
@@ -439,6 +517,9 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         callThread();
     }
 
+    /**
+     * animates the visibility of the views to invisible
+     */
     private void invisibleCallingViews() {
         SlideToDown();
         SlideToRight();
@@ -447,6 +528,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         isCallingViewVisible = false;
     }
 
+
+    /**
+     * thread to change the visibility of the controls on ui thread
+     * after some interval.
+     */
     private void callThread() {
         callRunnable = new Runnable() {
             @Override
@@ -467,7 +553,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     @Override
     public void onCallDisconnected() {
         disconnectCall();
-        JSONObject json = null;
+        JSONObject json;
         if(mMissedCall)
             return;
 
@@ -487,6 +573,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     @Override
     public void onCallStarted() {
+
         JSONObject json = getJson(Constants.CALL_STARTED, SUCCESS);
         mCallBackContext.successMessage(json);
 
@@ -512,7 +599,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     @Override
     public void onCallEndBeforeConnect() {
-        JSONObject json = null;
+        JSONObject json;
 
         if(mMissedCall)
             return;
@@ -547,14 +634,25 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     @Override
     public void onReciverInitialized() {
-        JSONObject json = getJson(Constants.RECEIVER_INITIALIZED, SUCCESS);
-        mCallBackContext.successMessage(json);
+        if(callBean.getIsReceiverInit().equalsIgnoreCase("false")){
+            JSONObject json = getJson(Constants.INITIALIZATION_COMPLETE, SUCCESS);
+            mCallBackContext.successMessage(json);
+        }else {
+            JSONObject json = getJson(Constants.RECEIVER_INITIALIZED, SUCCESS);
+            mCallBackContext.successMessage(json);
+        }
+
     }
 
     @Override
     public void onCallerInitialized() {
-        JSONObject json = getJson(Constants.INITIALIZATION_COMPLETE, SUCCESS);
-        mCallBackContext.successMessage(json);
+        if(callBean.getIsReceiverInit().equalsIgnoreCase("false")){
+            JSONObject json = getJson(Constants.INITIALIZATION_COMPLETE, SUCCESS);
+            mCallBackContext.successMessage(json);
+        }else {
+            JSONObject json = getJson(Constants.RECEIVER_INITIALIZED, SUCCESS);
+            mCallBackContext.successMessage(json);
+        }
     }
 
     @Override
@@ -563,6 +661,10 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         mCallBackContext.successMessage(json);
     }
 
+
+    /**
+     * Disconnects the call
+     */
     private void disconnectCall() {
         try {
 
@@ -579,14 +681,16 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             });
 
             ((MainActivity) cordova.getActivity()).setActivityListener(null);
-            if(MySession.CALL_CONNECTED){
-//            JSONObject json = getJson(Constants.CALL_END, SUCCESS);
-//            mCallBackContext.successMessage(json);
-            }
-            if (mSession.getSubscriber() != null) {
-//            JSONObject json = getJson(Constants.CALL_END, SUCCESS);
-//            mCallBackContext.successMessage(json);
-            } else if(mCallPerMinute != null && mCallPerMinute.equals("0")){
+//            if(MySession.CALL_CONNECTED){
+////            JSONObject json = getJson(Constants.CALL_END, SUCCESS);
+////            mCallBackContext.successMessage(json);
+//                Log.e(TAG, "call connected");
+//            }
+//            if (mSession.getSubscriber() != null) {
+////            JSONObject json = getJson(Constants.CALL_END, SUCCESS);
+////            mCallBackContext.successMessage(json);
+//            }
+            if(mCallPerMinute != null && mCallPerMinute.equals("0")){
                 JSONObject json = getJson(Constants.CALL_ENDED_BY_RECEIVER, SUCCESS);
                 mCallBackContext.successMessage(json);
             }
@@ -678,9 +782,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     }
 
 
+    /**
+     * animation to slide the view above.
+     */
     public void SlideToAbove() {
-        Animation slide = null;
-        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
+        Animation slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
                 Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF,
                 10f, Animation.RELATIVE_TO_SELF, 0.0f);
 
@@ -709,9 +815,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     }
 
+
+    /**
+     * animation to slide the view down.
+     */
     public void SlideToDown() {
-        Animation slide = null;
-        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
+        Animation slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
                 Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF,
                 0.0f, Animation.RELATIVE_TO_SELF, 5.2f);
 
@@ -740,9 +849,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     }
 
+    /**
+     * animation to slide the view left.
+     */
     public void SlideToLeft() {
-        Animation slide = null;
-        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 10.0f,
+        Animation slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 10.0f,
                 Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF,
                 0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
 
@@ -773,44 +884,47 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     /**
      * slides upward
      */
-    private void slideToUp(){
-        Animation slide = null;
-        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
-                Animation.RELATIVE_TO_SELF, 5.2f, Animation.RELATIVE_TO_SELF,
-                0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
-
-        slide.setDuration(600);
-        slide.setFillAfter(true);
-        slide.setFillEnabled(true);
-        mSwipeBtn.startAnimation(slide);
-
-        slide.setAnimationListener(new Animation.AnimationListener() {
-
-            @Override
-            public void onAnimationStart(Animation animation) {
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-
-                mSwipeBtn.setVisibility(View.GONE);
-//                mCallingViewParent.clearAnimation();
+//    private void slideToUp(){
+//        Animation slide = null;
+//        slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
+//                Animation.RELATIVE_TO_SELF, 5.2f, Animation.RELATIVE_TO_SELF,
+//                0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
 //
-//                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
-//                        mCallingViewParent.getWidth(), mCallingViewParent.getHeight());
-//                lp.setMargins(0, mCallingViewParent.getWidth(), 0, 0);
-//                lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-//                mCallingViewParent.setLayoutParams(lp);
+//        slide.setDuration(600);
+//        slide.setFillAfter(true);
+//        slide.setFillEnabled(true);
+//        mSwipeBtn.startAnimation(slide);
+//
+//        slide.setAnimationListener(new Animation.AnimationListener() {
+//
+//            @Override
+//            public void onAnimationStart(Animation animation) {
+//            }
+//
+//            @Override
+//            public void onAnimationRepeat(Animation animation) {
+//            }
+//
+//            @Override
+//            public void onAnimationEnd(Animation animation) {
+//
+//                mSwipeBtn.setVisibility(View.GONE);
+////                mCallingViewParent.clearAnimation();
+////
+////                RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+////                        mCallingViewParent.getWidth(), mCallingViewParent.getHeight());
+////                lp.setMargins(0, mCallingViewParent.getWidth(), 0, 0);
+////                lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+////                mCallingViewParent.setLayoutParams(lp);
+//
+//            }
+//
+//        });
+//    }
 
-            }
-
-        });
-    }
-
+    /**
+     * slides the view to the right
+     */
     public void SlideToRight() {
         Animation slide = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0.0f,
                 Animation.RELATIVE_TO_SELF, 5.2f, Animation.RELATIVE_TO_SELF,
@@ -916,7 +1030,6 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     public void onResumeActivity() {
         if (!resumeHasRun) {
             resumeHasRun = true;
-            return;
         } else {
             if (mSession != null) {
                 mSession.onResume();
@@ -951,7 +1064,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
      */
     private JSONObject getJson(String message, String message_type){
 
-        JSONObject jsonObj =null;
+
         try {
             if(message == null || message.equalsIgnoreCase(" ")){
                 return new JSONObject("{\"data\":\" \",\"status\":\"success\"}");
@@ -961,17 +1074,17 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
             if(message_type.equals(SUCCESS)){
                 if(message.equals("Initialization completed !!"))
-                    jsonObj = new JSONObject("{\"data\":\"Initialization completed !!\",\"status\":\"success\"}");
+                    jsonResponse = new JSONObject("{\"data\":\"Initialization completed !!\",\"status\":\"success\"}");
                 else if(message.equals("Successfully disconnected !!"))
-                    jsonObj = new JSONObject("{\"data\":\"Successfully disconnected !!\",\"status\":\"success\"}");
+                    jsonResponse = new JSONObject("{\"data\":\"Successfully disconnected !!\",\"status\":\"success\"}");
                 else
-                    jsonObj = new JSONObject("{\"data\":"+message+",\"status\":\"success\"}");
+                    jsonResponse = new JSONObject("{\"data\":"+message+",\"status\":\"success\"}");
 
-                return jsonObj;
+                return jsonResponse;
 
             }else if(message_type.equals(ERROR)){
-                jsonObj = new JSONObject("{\"data\":\"{\\\"networkType\\\":\\\"unknown\\\",\\\"error\\\":\\\"+message+\\\"}\",\"status\":\"failure\"}");
-                return jsonObj;
+                jsonResponse = new JSONObject("{\"data\":\"{\\\"networkType\\\":\\\"unknown\\\",\\\"error\\\":\\\"+message+\\\"}\",\"status\":\"failure\"}");
+                return jsonResponse;
             }
         }catch (Exception e){
             e.printStackTrace();
@@ -983,11 +1096,11 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
     /**
      * sets margin to a view
-     * @param v
-     * @param l
-     * @param t
-     * @param r
-     * @param b
+     * @param v vertical
+     * @param l from left
+     * @param t from top
+     * @param r from right
+     * @param b from bottom
      */
     public static void setMargins (View v, int l, int t, int r, int b) {
         if (v.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
@@ -1073,7 +1186,34 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                 int permissionCheckModifyAudio = ContextCompat.checkSelfPermission(cordova.getActivity(),
                         Manifest.permission.MODIFY_AUDIO_SETTINGS);
 
-                initCall(callBean);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        getBandWidthSpeed(new SpeedTestListener() {
+                            @Override
+                            public void onDownloadComplete(final int QUALITY) {
+                                cordova.getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        initCall(callBean, QUALITY);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onDownloadFailed() {
+                                cordova.getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        initCall(callBean, Constants.LOW);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }).start();
+
+
 
                 if (permissionCheck == PackageManager.PERMISSION_GRANTED && permissionCheckAudio == PackageManager.PERMISSION_GRANTED && permissionCheckModifyAudio == PackageManager.PERMISSION_GRANTED) {
 //                    cordova.getThreadPool().execute(new Runnable() {
@@ -1082,6 +1222,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 //
 //                        }
 //                    });
+                    Log.e(TAG, "call received");
 
                 } else {
 
@@ -1118,7 +1259,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     endCall(object);
                 }else
                     disconnectCall();
-            }else if(action == null || action == "null"){
+            }else if(action == null || action.equalsIgnoreCase("null")){
                 endCall(null);
             }else
                 endCall(action);
@@ -1134,12 +1275,20 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
     /**
      * shows low balance warning
      */
-    private void showLowBalanceWarning(){
+    private void showLowBalanceWarning(final boolean isPro, final String amount){
         cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try{
-                    layout_low_credit.setVisibility(View.VISIBLE);
+                    if (isPro && txt_low_balance != null){
+                        txt_low_balance.setText(Html.fromHtml("<font color=\"#ffffff\">" + "User has low balance " + "</font>"));
+                        layout_low_credit.setVisibility(View.VISIBLE);
+                    }
+                    else if(txt_low_balance != null){
+                        txt_low_balance.setText(Html.fromHtml("<font color=\"#ffffff\">" + "LOW CREDIT WARNING..." + "</font>" + "<font color=\"#F0AF32\">" + amount));
+                        layout_low_credit.setVisibility(View.VISIBLE);
+                    }
+
                 }catch (Exception e){
                     e.printStackTrace();
                 }
@@ -1334,91 +1483,87 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         }catch (Exception e){
             e.printStackTrace();
         }
-
-
     }
 
     /**
      * shows amount to be added
      */
     private void showAddAmountDialog(){
-        {
-            try{
+        try{
 
-                layout_low_credit.setVisibility(View.INVISIBLE);
-                layout_tip_send_receive.setVisibility(View.INVISIBLE);
+            layout_low_credit.setVisibility(View.INVISIBLE);
+            layout_tip_send_receive.setVisibility(View.INVISIBLE);
 //            layout_send_tip.setVisibility(View.VISIBLE);
 
-                cordova.getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
-                        dialogAddAmount = new Dialog(cordova.getActivity());
-                        dialogAddAmount.setContentView(R.layout.buy_credit);
-                        dialogAddAmount.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-                        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-                        lp.copyFrom(dialogAddAmount.getWindow().getAttributes());
-                        DisplayMetrics displaymetrics = new DisplayMetrics();
-                        cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-                        int height = displaymetrics.heightPixels;
-                        int width = displaymetrics.widthPixels;
-
-
-                        layout_close_add_credit = (RelativeLayout) dialogAddAmount.findViewById(R.id.layout_close_add_credit);
+                    dialogAddAmount = new Dialog(cordova.getActivity());
+                    dialogAddAmount.setContentView(R.layout.buy_credit);
+                    dialogAddAmount.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                    lp.copyFrom(dialogAddAmount.getWindow().getAttributes());
+                    DisplayMetrics displaymetrics = new DisplayMetrics();
+                    cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                    int height = displaymetrics.heightPixels;
+                    int width = displaymetrics.widthPixels;
 
 
-                        btn_buy_ten =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_ten);
-                        btn_buy_twetnty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_twetnty);
-                        btn_buy_fourty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_fourty);
-                        btn_buy_sixty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_sixty);
-                        layout_progress = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_progress);
-                        layout_credit_btns = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_credit_btns);
-                        txt_creditbal = (TextView) dialogAddAmount.findViewById(R.id.txt_creditbal);
-
-                        layout_close_add_credit.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                dialogAddAmount.dismiss();
-                            }
-                        });
-                        btn_buy_ten.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                sendCreditTip(Constants.TEN_DOLLARS, false);
-                            }
-                        });
-                        btn_buy_twetnty.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                sendCreditTip(Constants.TWENTY_DOLLARS, false);
-                            }
-                        });
-                        btn_buy_fourty.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                sendCreditTip(Constants.FOURTY_DOLLARS, false);
-                            }
-                        });
-                        btn_buy_sixty.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                sendCreditTip(Constants.SIXTY_DOLLARS, false);
-                            }
-                        });
+                    layout_close_add_credit = (RelativeLayout) dialogAddAmount.findViewById(R.id.layout_close_add_credit);
 
 
-                        lp.width = (int)(width * 0.8);
-                        lp.height = (int)(height * 0.8);
-                        dialogAddAmount.show();
-                        dialogAddAmount.getWindow().setAttributes(lp);
-                        dialogAddAmount.show();
-                        updateUserBalance(mUserBalance);
-                    }
-                });
+                    btn_buy_ten =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_ten);
+                    btn_buy_twetnty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_twetnty);
+                    btn_buy_fourty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_fourty);
+                    btn_buy_sixty =  (Button) dialogAddAmount.findViewById(R.id.btn_buy_sixty);
+                    layout_progress = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_progress);
+                    layout_credit_btns = (LinearLayout) dialogAddAmount.findViewById(R.id.layout_credit_btns);
+                    txt_creditbal = (TextView) dialogAddAmount.findViewById(R.id.txt_creditbal);
 
-            }catch (Exception e){
-                e.printStackTrace();
-            }
+                    layout_close_add_credit.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogAddAmount.dismiss();
+                        }
+                    });
+                    btn_buy_ten.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            sendCreditTip(Constants.TEN_DOLLARS, false);
+                        }
+                    });
+                    btn_buy_twetnty.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            sendCreditTip(Constants.TWENTY_DOLLARS, false);
+                        }
+                    });
+                    btn_buy_fourty.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            sendCreditTip(Constants.FOURTY_DOLLARS, false);
+                        }
+                    });
+                    btn_buy_sixty.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            sendCreditTip(Constants.SIXTY_DOLLARS, false);
+                        }
+                    });
+
+
+                    lp.width = (int)(width * 0.8);
+                    lp.height = (int)(height * 0.8);
+                    dialogAddAmount.show();
+                    dialogAddAmount.getWindow().setAttributes(lp);
+                    dialogAddAmount.show();
+                    updateUserBalance(mUserBalance);
+                }
+            });
+
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -1429,18 +1574,27 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
      */
     private void showTipSendReceive(final String amount, final boolean isReceived){
         try {
+            if(txt_tipsent ==null)
+                return;
             cordova.getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     if(isReceived)
-                        txt_tipsent.setText(amount +" tips received");
+                        txt_tipsent.setText(cordova.getActivity().
+                                getString(R.string.tip_received_value, amount));
                     else
-                        txt_tipsent.setText(amount +" tips sent");
+                        txt_tipsent.setText(cordova.getActivity().
+                                getString(R.string.tip_sent_value, amount));
                 }
             });
 
 
-            layout_tip_send_receive.setVisibility(View.VISIBLE);
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    layout_tip_send_receive.setVisibility(View.VISIBLE);
+                }
+            });
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 public void run() {
@@ -1474,7 +1628,145 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
                     }else if(dialogTip != null && dialogTip.isShowing() &&
                             txt_creditbal != null ){
                         txt_creditbal.setText(Html.fromHtml("<font color=\"#c5c5c5\">" + "You have " + "</font>" + "<font color=\"#F0AF32\">" + mUserBalance+ "</font>"+ "<font color=\"#c5c5c5\">" + " credits"+"</font>"));
+                    }else if(dialogCreditSuccess != null && dialogCreditSuccess.isShowing()
+                            && txt_creditbal != null){
+                        txt_creditbal.setText(Html.fromHtml("<font color=\"#c5c5c5\">" + "You have " + "</font>" + "<font color=\"#F0AF32\">" + mUserBalance+ "</font>"+ "<font color=\"#c5c5c5\">" + " credits"+"</font>"));
                     }
+                }
+            });
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * calculates band-width speed
+     */
+    private void getBandWidthSpeed(final SpeedTestListener speedTestListener){
+        SpeedTestSocket speedTestSocket = new SpeedTestSocket();
+        speedTestSocket.addSpeedTestListener(new ISpeedTestListener() {
+            @Override
+            public void onDownloadPacketsReceived(final long packetSize, final float transferRateBitPerSeconds, final
+            float transferRateOctetPerSeconds) {
+                float current_speed = (transferRateBitPerSeconds / Constants.VALUE_PER_SECONDS);
+                if(current_speed < Constants.MIN){
+                    speedTestListener.onDownloadComplete(Constants.LOW);
+                }else if(current_speed >Constants.MIN && current_speed <Constants.MAX){
+                    speedTestListener.onDownloadComplete(Constants.MEDIUM);
+                }else if(current_speed > Constants.MAX){
+                    speedTestListener.onDownloadComplete(Constants.HIGH);
+                }
+//                LogUtils.logFinishedTask(SpeedTestMode.DOWNLOAD, packetSize, transferRateBitPerSeconds,
+//                        transferRateOctetPerSeconds, true);
+
+            }
+
+            @Override
+            public void onDownloadError(final SpeedTestError speedTestError, final String errorMessage) {
+//                if (true) {
+                speedTestListener.onDownloadFailed();
+                LOG.e(TAG, "Download error " + speedTestError + " : " + errorMessage);
+//                }
+            }
+
+            @Override
+            public void onUploadPacketsReceived(final long packetSize, final float transferRateBitPerSeconds, final
+            float transferRateOctetPerSeconds) {
+
+//                LogUtils.logFinishedTask(SpeedTestMode.UPLOAD, packetSize, transferRateBitPerSeconds,
+//                        transferRateOctetPerSeconds, true);
+
+                float current_speed = (transferRateBitPerSeconds / Constants.VALUE_PER_SECONDS);
+                if(current_speed < Constants.MIN){
+                    speedTestListener.onDownloadComplete(Constants.LOW);
+                }else if(current_speed >Constants.MIN && current_speed <Constants.MAX){
+                    speedTestListener.onDownloadComplete(Constants.MEDIUM);
+                }else if(current_speed > Constants.MAX){
+                    speedTestListener.onDownloadComplete(Constants.HIGH);
+                }
+
+            }
+
+            @Override
+            public void onUploadError(final SpeedTestError speedTestError, final String errorMessage) {
+//                if (true) {
+                Log.e(TAG,"Upload error " + speedTestError + " : " + errorMessage);
+//                }
+            }
+
+            @Override
+            public void onDownloadProgress(final float percent, final SpeedTestReport downloadReport) {
+
+//                LogUtils.logSpeedTestReport(downloadReport, LOGGER, true);
+            }
+
+            @Override
+            public void onUploadProgress(final float percent, final SpeedTestReport uploadReport) {
+
+//                LogUtils.logSpeedTestReport(uploadReport, LOGGER, true);
+            }
+
+        });
+
+
+        speedTestSocket.startDownload(Constants.SPEED_TEST_SERVER_HOST,
+                Constants.SPEED_TEST_SERVER_PORT, Constants.SPEED_TEST_SERVER_URI_DL);
+    }
+
+
+    /**
+     * shows credit added success message
+     * @param amount current user balance
+     */
+    private void showCreditSuccessDialog(final String amount){
+        try{
+
+            layout_low_credit.setVisibility(View.INVISIBLE);
+            layout_tip_send_receive.setVisibility(View.INVISIBLE);
+//            layout_send_tip.setVisibility(View.VISIBLE);
+
+            cordova.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+
+                    dialogCreditSuccess = new Dialog(cordova.getActivity());
+                    dialogCreditSuccess.setContentView(R.layout.credit_added);
+                    dialogCreditSuccess.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                    lp.copyFrom(dialogCreditSuccess.getWindow().getAttributes());
+                    DisplayMetrics displaymetrics = new DisplayMetrics();
+                    cordova.getActivity().getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                    int height = displaymetrics.heightPixels;
+                    int width = displaymetrics.widthPixels;
+
+                    layout_close = (RelativeLayout) dialogCreditSuccess.findViewById(R.id.layout_close);
+                    layout_addmore =  (LinearLayout) dialogCreditSuccess.findViewById(R.id.layout_addmore);
+                    txt_creditbal = (TextView) dialogCreditSuccess.findViewById(R.id.txt_creditbal);
+
+                    layout_close.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogCreditSuccess.dismiss();
+                        }
+                    });
+
+                    layout_addmore.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialogCreditSuccess.dismiss();
+                            showAddAmountDialog();
+                        }
+                    });
+
+                    lp.width = (int)(width * 0.8);
+                    lp.height = (int)(height * 0.8);
+                    dialogCreditSuccess.show();
+                    dialogCreditSuccess.getWindow().setAttributes(lp);
+                    dialogCreditSuccess.show();
+                    updateUserBalance(mUserBalance);
+                    txt_creditbal.setText(Html.fromHtml("<font color=\"#c5c5c5\">" + "You have " + "</font>" + "<font color=\"#F0AF32\">" + amount+ "</font>"+ "<font color=\"#c5c5c5\">" + " credits"+"</font>"));
                 }
             });
 

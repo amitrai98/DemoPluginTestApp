@@ -26,7 +26,7 @@
             android:layout_toRightOf="@+id/img_warning"
             android:layout_centerVertical="true"
             android:layout_marginLeft="10dp"
-            android:id="@+id/txt_tipsent"
+            android:id="@+id/txt_lowbalance"
             android:text="@string/low_credit_warninig"
             android:textColor="@color/white"
             android:layout_width="wrap_content"

@@ -3,7 +3,7 @@
     <string name="app_name">HelloCordova</string>
     <string name="launcher_name">@string/app_name</string>
     <string name="activity_name">@string/launcher_name</string>
-    <string name="low_credit_warninig">LOW CREDIT WARNING... 30s</string>
+    <string name="low_credit_warninig">LOW CREDIT WARNING...</string>
     <string name="tip_sent">tips sent</string>
     <string name="tip_received">tips received</string>
     <string name="send_tip">SEND TIP</string>
@@ -21,6 +21,10 @@
     <string name="buy_sixty_credit">Buy 60 credits for $60</string>
     <string name="wait_message">Please Wait</string>
     <string name="credits">CREDITS</string>
-
-
+    <string name="tip_received_value">%1$s tips received</string>
+    <string name="tip_sent_value">%1$s tips sent</string>
+    <string name="call_connect_price">Once connected this video chat
+        \n will be billed at %1$s per min.</string>
+    <string name="credit_add_failure_message">An error occurred while adding credit, please try again</string>
+    <string name="tip_send_failure_message">An error occurred while sending tip, please try again</string>
 </resources>

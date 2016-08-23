@@ -11,12 +11,13 @@ myApp.controller("myController", function($scope) {
         +'"ApiKey":"45635122",'
         +'"SessionId":"2_MX40NTYzNTEyMn5-MTQ3MDgwMzM2NDQxNH5WbjRMU3h5eCthSkUyNnQzUk1zUnkyQkR-fg",'
         +'"Token":"T1==cGFydG5lcl9pZD00NTYzNTEyMiZzaWc9ZmViZmMwZTcyMmM4NDBiMDFmYzg4OGI1OThjOTAxZjMwOTNjMjc5MDpzZXNzaW9uX2lkPTJfTVg0ME5UWXpOVEV5TW41LU1UUTNNRGd3TXpNMk5EUXhOSDVXYmpSTVUzaDVlQ3RoU2tVeU5uUXpVazF6VW5reVFrUi1mZyZjcmVhdGVfdGltZT0xNDcwODAzMzk1Jm5vbmNlPTAuMDY2NzI4ODYzMzk5NDc1ODEmcm9sZT1wdWJsaXNoZXImZXhwaXJlX3RpbWU9MTQ3MzM5NTM5NA==",'
-        +'"UserType":"User",'
+        +'"UserType":"Pro",'
         +'"IsAbleToCall":"true",'
         +'"ProfileImage":"http://igert2012.videohall.com/images/defaults/small_default_profile.png",'
         +'"UserName":"Abella",'
         +'"CallPerMinute":"2",'
-        +'"Amount":"22.30"'
+        +'"Amount":"22.30",'
+        +'"isReceiverInit":"false"'
         +'}';
         var a = JSON.parse(obj);
         console.log("parseee :" + jsonObj);
@@ -29,26 +30,35 @@ myApp.controller("myController", function($scope) {
         setTimeout(myFunction2, 10000);
     };
 
-//    function myFunction() {
-//        VideoPlugin.showLowBalanceWarning("30s", function() {
-//            console.log('success==>');
-//			setTimeout(myFunction3, 3000);
-//        }, function() {
-//            console.log('error==>');
-//            setTimeout(myFunction3, 3000);
-//        });
-//    }
+    function myFunction() {
+        VideoPlugin.showLowBalanceWarning("30s", function() {
+            console.log('success==>');
+			setTimeout(myFunction3, 3000);
+        }, function() {
+            console.log('error==>');
+            setTimeout(myFunction3, 3000);
+        });
+    }
     function myFunction2() {
-            VideoPlugin.receivedResponseFromAPI("credit", "success", "0", function() {
+            VideoPlugin.receivedResponseFromAPI("credit", "success", "20", function() {
                 console.log('success==>');
-    			setTimeout(myFunction3, 3000);
+    			setTimeout(myFunction4, 3000);
             }, function() {
                 console.log('error==>');
-                setTimeout(myFunction3, 3000);
+                setTimeout(myFunction4, 3000);
             });
         }
 
 	function myFunction3() {
+    			VideoPlugin.tipReceived(10, function() {
+    				console.log('success==>');
+    	//			setTimeout(myFunction, 3000);
+    			}, function() {
+    				console.log('error==>');
+    			});
+    		}
+
+	function myFunction4() {
 			VideoPlugin.getUserBalance(30, function() {
 				console.log('success==>');
 	//			setTimeout(myFunction, 3000);
