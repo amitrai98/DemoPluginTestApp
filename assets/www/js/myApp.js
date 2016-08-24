@@ -27,45 +27,45 @@ myApp.controller("myController", function($scope) {
         VideoPlugin.initializeVideoCalling(jsonObj, onSuccess, onFail);
         console.log("video");
         //          hello.startMakingConnection();
-        setTimeout(myFunction2, 10000);
+        setTimeout(myFunction, 3000);
     };
 
     function myFunction() {
-        VideoPlugin.showLowBalanceWarning("30s", function() {
+        VideoPlugin.showLowBalanceWarning("", function() {
             console.log('success==>');
-			setTimeout(myFunction3, 3000);
+            setTimeout(myFunction2, 3000);
         }, function() {
             console.log('error==>');
-            setTimeout(myFunction3, 3000);
+            setTimeout(myFunction2, 3000);
         });
     }
     function myFunction2() {
-            VideoPlugin.receivedResponseFromAPI("credit", "success", "20", function() {
+            VideoPlugin.receivedResponseFromAPI("credit", "success", "0", function() {
                 console.log('success==>');
-    			setTimeout(myFunction4, 3000);
+                setTimeout(myFunction4, 3000);
             }, function() {
                 console.log('error==>');
                 setTimeout(myFunction4, 3000);
             });
         }
 
-	function myFunction3() {
-    			VideoPlugin.tipReceived(10, function() {
-    				console.log('success==>');
-    	//			setTimeout(myFunction, 3000);
-    			}, function() {
-    				console.log('error==>');
-    			});
-    		}
+    function myFunction3() {
+                VideoPlugin.tipReceived(10, function() {
+                    console.log('success==>');
+        //          setTimeout(myFunction, 3000);
+                }, function() {
+                    console.log('error==>');
+                });
+            }
 
-	function myFunction4() {
-			VideoPlugin.getUserBalance(30, function() {
-				console.log('success==>');
-	//			setTimeout(myFunction, 3000);
-			}, function() {
-				console.log('error==>');
-			});
-		}
+    function myFunction4() {
+            VideoPlugin.getUserBalance(30, function() {
+                console.log('success==>');
+    //          setTimeout(myFunction, 3000);
+            }, function() {
+                console.log('error==>');
+            });
+        }
 
 
 

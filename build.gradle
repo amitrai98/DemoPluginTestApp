@@ -248,11 +248,10 @@ android {
 dependencies {
     compile fileTree(include: '*.jar', dir: 'libs')
     // SUB-PROJECT DEPENDENCIES START
-    debugCompile project(path: 'CordovaLib', configuration: 'debug')
-    releaseCompile project(path: 'CordovaLib', configuration: 'release')
+    debugCompile project(path: "CordovaLib", configuration: "debug")
+    releaseCompile project(path: "CordovaLib", configuration: "release")
     // SUB-PROJECT DEPENDENCIES END
     compile files('libs/speedtest-1.10-sources.jar')
-    compile 'com.github.akinaru:speedtest:1.11'
 }
 
 def promptForReleaseKeyPassword() {

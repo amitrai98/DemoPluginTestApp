@@ -182,7 +182,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
             // done check the credit of tip send success and remove the dialogs
             // done "status - credit or tip " "response type- success or error", "error message in case of failure or updated amount in case of success"
             // done close the status or credit dialog after reading response
-            // todo in case of 0 amount, remove low balance dialog if i am pro
+            // done in case of 0 amount, remove low balance dialog if i am pro
             if(action.equalsIgnoreCase(ACTION_APIRESPONSE)){
 
                 cordova.getActivity().runOnUiThread(new Runnable() {
@@ -209,14 +209,12 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
 
                                 }else if(transaction_type.equalsIgnoreCase("credit")){
                                     if (status.equalsIgnoreCase("success")){
-                                        if(layout_low_credit != null &&
+                                        if(callBean != null && callBean.getUserType().equalsIgnoreCase(Constants.USER_TYPE_PRO)){
+                                            layout_low_credit.setVisibility(View.INVISIBLE);
+                                            return;
+                                        }else if(layout_low_credit != null &&
                                                 layout_low_credit.getVisibility() == View.VISIBLE) {
-                                            cordova.getActivity().runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    layout_low_credit.setVisibility(View.INVISIBLE);
-                                                }
-                                            });
+                                            layout_low_credit.setVisibility(View.INVISIBLE);
                                         }
                                         if(dialogAddAmount != null && dialogAddAmount.isShowing())
                                             dialogAddAmount.dismiss();
@@ -385,7 +383,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         mParentProgressDialog = (LinearLayout) mCallView.findViewById(R.id.ll_parent_connecting);
         mProfilePicConnecting = (ImageView) mCallView.findViewById(R.id.iv_connecting_img);
         TextView price = (TextView) mCallView.findViewById(R.id.tv_dialog_price);
-        price.setText(cordova.getActivity().getString(R.string.call_connect_price));//("Once connected this video chat \n will be billed at " + mCallPerMinute + " per min.");
+        price.setText(cordova.getActivity().getString(R.string.call_connect_price, callBean.getCallPerMinute()));//("Once connected this video chat \n will be billed at " + mCallPerMinute + " per min.");
 
         //        creator.into(mProfilePicConnecting);
         ProgressBar progressbar = (ProgressBar) mCallView.findViewById(R.id.pb_connecting);
