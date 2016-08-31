@@ -1,6 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">HelloCordova</string>
+    <string name="pro_call_coast">User will be charged %1$s$ per minute \n once video call connects</string>
     <string name="launcher_name">@string/app_name</string>
     <string name="activity_name">@string/launcher_name</string>
     <string name="low_credit_warninig">LOW CREDIT WARNING...</string>
@@ -27,5 +28,4 @@
     <string name="tip_send_failure_message">An error occurred while sending tip, please try again</string>
     <string name="connecting">Connecting...</string>
     <string name="receiverview">Receiver View</string>
-    <string name="pro_call_coast">User will be charged %1$s$ per minute \n once video call connects</string>
 </resources>

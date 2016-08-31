@@ -1826,9 +1826,7 @@ public class VideoPlugin extends CordovaPlugin implements SessionListeners, Acti
         try {
             AssetFileDescriptor afd = context.getAssets().openFd(file);
 
-            if(mediaPlayer == null)
-                mediaPlayer = new MediaPlayer();
-
+            mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(
                     afd.getFileDescriptor(),
                     afd.getStartOffset(),

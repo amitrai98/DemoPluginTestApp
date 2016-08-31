@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <color name="bg_color">#36043c</color>
     <color name="connecting_dialog">#313131</color>
     <color name="white">#ffffff</color>
     <color name="credit_added">#4e9f2e</color>
@@ -9,5 +10,4 @@
     <color name="header">#542A63</color>
     <color name="golden">#F0AF32</color>
     <color name="insuficinet_bal_bg">#FD4C4C</color>
-    <color name="bg_color">#36043c</color>
 </resources>
