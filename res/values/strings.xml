@@ -27,4 +27,5 @@
     <string name="tip_send_failure_message">An error occurred while sending tip, please try again</string>
     <string name="connecting">Connecting...</string>
     <string name="receiverview">Receiver View</string>
+    <string name="pro_call_coast">User will be charged %1$s$ per minute \n once video call connects</string>
 </resources>
